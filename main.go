@@ -18,19 +18,23 @@ func main() {
 		paint.Clear()
 	})
 	exportBtn := widget.NewButton("Export PNG", func() {
-		err := paint.ExportToPNG(w, "drawing.png")
+		err := paint.ExportToPNG(w, "draw.png")
 		if err != nil {
 			panic(err)
 		}
 	})
 
+	printBtn := widget.NewButton("Print Matrix", func() {
+		paint.PrintMatrix(w)
+	})
+
 	// Create a container with proper layout
 	content := container.NewBorder(
-		nil,                                      // Top
-		container.NewVBox(refreshBtn, exportBtn), // Bottom
-		nil,                                      // Left
-		nil,                                      // Right
-		paint,                                    // Center
+		nil, // Top
+		container.NewVBox(refreshBtn, exportBtn, printBtn), // Bottom
+		nil,   // Left
+		nil,   // Right
+		paint, // Center
 	)
 
 	// Set window content and size

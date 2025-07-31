@@ -1,13 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
-	"github.com/oliamb/cutter"
-	"golang.org/x/image/draw"
-	"image"
 	"image/color"
 	"image/png"
 	"os"
@@ -64,40 +62,21 @@ func (p *PaintWidget) MouseOut() {}
 func (p *PaintWidget) MouseUp(ev *desktop.MouseEvent) {
 }
 
-func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) image.Image {
-	croppedImg, err := cutter.Crop(img, cutter.Config{
-		Width:  int(size.Width) + 100,
-		Height: int(size.Height) + 68,
-		Anchor: image.Point{X: int(position.X) + 10, Y: int(position.Y) + 10},
-	})
-	if err != nil {
-		panic(err)
+func (p *PaintWidget) PrintMatrix(w fyne.Window) {
+	img := captureAndProcessImage(w, p)
+	mat := toBinaryMatrix(img)
+	fmt.Println()
+	for _, line := range mat {
+		fmt.Println(line)
 	}
-	dst := image.NewPaletted(image.Rect(0, 0, croppedImg.Bounds().Size().X, croppedImg.Bounds().Size().Y), color.Palette{color.White, color.Black})
-	draw.Draw(dst, img.Bounds(), croppedImg, image.Point{0, 0}, draw.Over)
-	final := image.NewGray(image.Rect(0, 0, 15, 15))
-	draw.CatmullRom.Scale(final, final.Rect, croppedImg, croppedImg.Bounds(), draw.Over, nil)
-	for i := 1; i != 14; i++ {
-		for j := 1; j != 15; j++ {
-			y := final.GrayAt(i, j).Y
-			if y < 255 {
-				final.Set(i, j, color.Black)
-			} else {
-				final.Set(i, j, color.White)
-			}
-
-		}
-	}
-	return final
 }
 
 func (p *PaintWidget) ExportToPNG(w fyne.Window, filename string) error {
-	img := w.Canvas().Capture()
 	file, err := os.Create(filename)
 	if err != nil {
 		return err
 	}
-	result := imageProcessor(img, p.Size(), p.Position())
+	result := captureAndProcessImage(w, p)
 	defer file.Close()
 	return png.Encode(file, result)
 }
