@@ -9,10 +9,8 @@ import (
 	"image/color"
 )
 
-const (
-	MATRIX_COL_NUM = 20
-	MATRIX_ROW_NUM
-)
+var MatrixColNum = 20
+var MatrixRowNum = 20
 
 func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *image.Gray {
 	croppedImg, err := cutter.Crop(img, cutter.Config{
@@ -25,10 +23,10 @@ func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *im
 	}
 	dst := image.NewPaletted(image.Rect(0, 0, croppedImg.Bounds().Size().X, croppedImg.Bounds().Size().Y), color.Palette{color.White, color.Black})
 	draw.Draw(dst, img.Bounds(), croppedImg, image.Point{}, draw.Over)
-	final := image.NewGray(image.Rect(0, 0, MATRIX_ROW_NUM, MATRIX_COL_NUM))
+	final := image.NewGray(image.Rect(0, 0, MatrixRowNum, MatrixColNum))
 	draw.CatmullRom.Scale(final, final.Rect, croppedImg, croppedImg.Bounds(), draw.Over, nil)
-	for i := 1; i != MATRIX_ROW_NUM; i++ {
-		for j := 1; j != MATRIX_COL_NUM-1; j++ {
+	for i := 1; i != MatrixRowNum; i++ {
+		for j := 1; j != MatrixColNum-1; j++ {
 			y := final.GrayAt(i, j).Y
 			if 255 > y {
 				final.Set(i, j, color.Black)
@@ -41,16 +39,16 @@ func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *im
 	return final
 }
 
-func toBinaryMatrix(img *image.Gray) [][]int8 {
+func image2BinaryMatrix(img *image.Gray) [][]int8 {
 	temp := transform.Rotate(img, 90, nil)
 	temp = transform.FlipH(temp)
 	rect := image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy())
 	draw.Draw(img, rect, temp, image.Point{}, draw.Over)
 	var result [][]int8
-	result = make([][]int8, MATRIX_ROW_NUM-1)
-	for i := 0; i != MATRIX_ROW_NUM-1; i++ {
-		result[i] = make([]int8, MATRIX_COL_NUM-1)
-		for j := 0; j != MATRIX_COL_NUM-1; j++ {
+	result = make([][]int8, MatrixRowNum-1)
+	for i := 0; i != MatrixRowNum-1; i++ {
+		result[i] = make([]int8, MatrixColNum-1)
+		for j := 0; j != MatrixColNum-1; j++ {
 			y := img.GrayAt(i, j).Y
 			if y == 0 {
 				result[i][j] = int8(1)
