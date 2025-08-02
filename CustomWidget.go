@@ -62,13 +62,18 @@ func (p *PaintWidget) MouseOut() {}
 func (p *PaintWidget) MouseUp(ev *desktop.MouseEvent) {
 }
 
-func (p *PaintWidget) PrintMatrix(w fyne.Window) {
+func (p *PaintWidget) PrintMatrix(w fyne.Window, flat bool) {
 	img := captureAndProcessImage(w, p)
-	mat := toBinaryMatrix(img)
+	mat := image2BinaryMatrix(img)
 	fmt.Println()
-	for _, line := range mat {
-		fmt.Println(line)
+	if flat {
+		fmt.Println(ConvertToFlattenMatric(mat))
+	} else {
+		for _, line := range mat {
+			fmt.Println(line)
+		}
 	}
+
 }
 
 func (p *PaintWidget) ExportToPNG(w fyne.Window, filename string) error {
