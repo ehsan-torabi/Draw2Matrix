@@ -16,27 +16,39 @@ func main() {
 	w := a.NewWindow("Draw2Matrix")
 
 	flatMatrix := true
+	matlabSaveFormat := true
 	// Create components
 	paint := NewPaintWidget()
 	paint.Resize(fyne.NewSize(20, 20))
 	refreshBtn := widget.NewButton("Clear", func() {
 		paint.Clear()
 	})
-	exportBtn := widget.NewButton("Export PNG", func() {
-		err := paint.ExportToPNG(w, "draw.png")
-		if err != nil {
-			fmt.Printf("Export error: %s", err) // Use original stdout for errors
-		}
-	})
-	printBtn := widget.NewButton("Print Matrix", func() {
+
+	printBtn := widget.NewButton("Save File", func() {
 		paint.PrintMatrix(w, flatMatrix)
 	})
 	flatMatrixCheck := widget.NewCheck("Flat Matric", func(b bool) {
 		flatMatrix = b
 	})
+	matlabSaveCheck := widget.NewCheck("Matlab Save Matrix", func(b bool) {
+		matlabSaveFormat = b
+	})
+	matlabSaveCheck.Checked = true
 	flatMatrixCheck.Checked = true
 	input := widget.NewEntry()
 	input.SetPlaceHolder("Enter Label")
+
+	exportBtn := widget.NewButton("Export PNG", func() {
+		filename := "draw.png"
+		if input.Text != "" {
+			filename = input.Text + ".png"
+		}
+		err := paint.ExportToPNG(w, filename)
+		if err != nil {
+			fmt.Printf("Export error: %s", err)
+		}
+	})
+
 	rowInput := widget.NewEntry()
 	rowInput.SetPlaceHolder("Row")
 	rowInput.SetText(strconv.Itoa(MatrixRowNum))
@@ -61,8 +73,8 @@ func main() {
 	}
 
 	rowColContainer := container.NewGridWithColumns(2, rowInput, colInput)
-	submitBtn := widget.NewButton("Submit", func() {})
-	labelContainer := container.NewAdaptiveGrid(3, input, flatMatrixCheck, submitBtn)
+	submitBtn := widget.NewButton("Add", func() {})
+	labelContainer := container.NewAdaptiveGrid(3, input, container.NewVBox(flatMatrixCheck, matlabSaveCheck), submitBtn)
 	bottomContainer := container.NewVBox(refreshBtn, exportBtn, labelContainer, printBtn, rowColContainer)
 
 	// Create a container with proper layout
@@ -83,6 +95,7 @@ func main() {
 		oldStdOut := os.Stdout
 		os.Stdout = nil
 		paint.PrintMatrix(w, flatMatrix)
+		fmt.Println(matlabSaveFormat)
 		os.Stdout = oldStdOut
 	})
 	w.ShowAndRun()

@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/png"
 	"os"
+	"path/filepath"
 )
 
 var PrevPose fyne.Position = fyne.NewPos(0, 0)
@@ -77,10 +78,16 @@ func (p *PaintWidget) PrintMatrix(w fyne.Window, flat bool) {
 }
 
 func (p *PaintWidget) ExportToPNG(w fyne.Window, filename string) error {
-	file, err := os.Create(filename)
+	wd, _ := os.Getwd()
+	err := os.Mkdir(filepath.Join(wd, "output"), os.ModePerm)
+	if err != nil && !os.IsExist(err) {
+		return err
+	}
+	file, err := os.Create(filepath.Join("output", filename))
 	if err != nil {
 		return err
 	}
+
 	result := captureAndProcessImage(w, p)
 	defer file.Close()
 	return png.Encode(file, result)
