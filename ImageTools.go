@@ -9,9 +9,6 @@ import (
 	"image/color"
 )
 
-var MatrixColNum = 20
-var MatrixRowNum = 20
-
 func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *image.Gray {
 	croppedImg, err := cutter.Crop(img, cutter.Config{
 		Width:  int(size.Width) + 100,
@@ -23,10 +20,10 @@ func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *im
 	}
 	dst := image.NewPaletted(image.Rect(0, 0, croppedImg.Bounds().Size().X, croppedImg.Bounds().Size().Y), color.Palette{color.White, color.Black})
 	draw.Draw(dst, img.Bounds(), croppedImg, image.Point{}, draw.Over)
-	final := image.NewGray(image.Rect(0, 0, MatrixRowNum, MatrixColNum))
+	final := image.NewGray(image.Rect(0, 0, Options.MatrixRow, Options.MatrixCol))
 	draw.CatmullRom.Scale(final, final.Rect, croppedImg, croppedImg.Bounds(), draw.Over, nil)
-	for i := 1; i != MatrixRowNum; i++ {
-		for j := 1; j != MatrixColNum-1; j++ {
+	for i := 1; i != Options.MatrixRow; i++ {
+		for j := 1; j != Options.MatrixCol-1; j++ {
 			y := final.GrayAt(i, j).Y
 			if 255 > y {
 				final.Set(i, j, color.Black)
@@ -45,10 +42,10 @@ func image2BinaryMatrix(img *image.Gray) [][]int8 {
 	rect := image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy())
 	draw.Draw(img, rect, temp, image.Point{}, draw.Over)
 	var result [][]int8
-	result = make([][]int8, MatrixRowNum-1)
-	for i := 0; i != MatrixRowNum-1; i++ {
-		result[i] = make([]int8, MatrixColNum-1)
-		for j := 0; j != MatrixColNum-1; j++ {
+	result = make([][]int8, Options.MatrixRow-1)
+	for i := 0; i != Options.MatrixRow-1; i++ {
+		result[i] = make([]int8, Options.MatrixCol-1)
+		for j := 0; j != Options.MatrixCol-1; j++ {
 			y := img.GrayAt(i, j).Y
 			if y == 0 {
 				result[i][j] = int8(1)

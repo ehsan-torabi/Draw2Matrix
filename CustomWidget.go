@@ -21,7 +21,8 @@ type PaintWidget struct {
 
 func (p *PaintWidget) CreateRenderer() fyne.WidgetRenderer {
 	rect := canvas.NewRectangle(color.RGBA{255, 255, 255, 255})
-	rect.StrokeWidth = 5
+	rect.StrokeColor = color.RGBA{100, 100, 100, 255}
+	rect.StrokeWidth = 1
 	rect.Resize(fyne.NewSize(20, 20)) // Set a default size
 
 	return &paintRenderer{
@@ -75,6 +76,12 @@ func (p *PaintWidget) PrintMatrix(w fyne.Window, flat bool) {
 		}
 	}
 
+}
+
+func (p *PaintWidget) GetMatrix(w fyne.Window) [][]int8 {
+	img := captureAndProcessImage(w, p)
+	mat := image2BinaryMatrix(img)
+	return mat
 }
 
 func (p *PaintWidget) ExportToPNG(w fyne.Window, filename string) error {

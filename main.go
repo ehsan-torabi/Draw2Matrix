@@ -6,39 +6,72 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"image/color"
 	"os"
 	"strconv"
 )
+
+var Options struct {
+	FlatMatrix       bool
+	MatlabSaveFormat bool
+	MatrixCol        int
+	MatrixRow        int
+}
 
 func main() {
 	a := app.New()
 	w := a.NewWindow("Draw2Matrix")
 
-	flatMatrix := true
-	matlabSaveFormat := true
+	// Theme settings
+	currentTheme := 0 // 0: light, 1: dark, 2: custom
+	themes := []fyne.Theme{
+		theme.LightTheme(),
+		theme.DarkTheme(),
+		&customTheme{},
+	}
+	a.Settings().SetTheme(themes[currentTheme])
+	Options.FlatMatrix = true
+	Options.MatlabSaveFormat = true
 	// Create components
 	paint := NewPaintWidget()
 	paint.Resize(fyne.NewSize(20, 20))
-	refreshBtn := widget.NewButton("Clear", func() {
+
+	// Styled buttons
+	refreshBtn := widget.NewButtonWithIcon("Clear", theme.DeleteIcon(), func() {
 		paint.Clear()
 	})
+	refreshBtn.Importance = widget.HighImportance
 
-	printBtn := widget.NewButton("Save File", func() {
-		paint.PrintMatrix(w, flatMatrix)
+	printBtn := widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), func() {
+		paint.PrintMatrix(w, Options.FlatMatrix)
+		err := SaveFile()
+		if err != nil {
+			return
+		}
+		//dialog.ShowFolderOpen(func(uc fyne.ListableURI, err error) {
+		//	if err != nil {
+		//		dialog.ShowError(err, w)
+		//		return
+		//	}
+		//	if uc == nil {
+		//		return
+		//	}
+		//	filePath := uc.Path()
+		//	fmt.Println("Selected file:", filePath)
+		//}, w)
 	})
-	flatMatrixCheck := widget.NewCheck("Flat Matric", func(b bool) {
-		flatMatrix = b
-	})
-	matlabSaveCheck := widget.NewCheck("Matlab Save Matrix", func(b bool) {
-		matlabSaveFormat = b
-	})
-	matlabSaveCheck.Checked = true
-	flatMatrixCheck.Checked = true
 	input := widget.NewEntry()
 	input.SetPlaceHolder("Enter Label")
-
-	exportBtn := widget.NewButton("Export PNG", func() {
+	input.Validator = func(s string) error {
+		if len(s) > 20 {
+			return fmt.Errorf("label too long")
+		}
+		return nil
+	}
+	exportBtn := widget.NewButtonWithIcon("Export PNG", theme.FileImageIcon(), func() {
 		filename := "draw.png"
 		if input.Text != "" {
 			filename = input.Text + ".png"
@@ -48,56 +81,149 @@ func main() {
 			fmt.Printf("Export error: %s", err)
 		}
 	})
+	exportBtn.Importance = widget.MediumImportance
 
+	// Checkboxes with custom style
+	flatMatrixCheck := widget.NewCheck("Flat Matrix", func(b bool) {
+		Options.FlatMatrix = b
+	})
+	matlabSaveCheck := widget.NewCheck("Matlab Save Format", func(b bool) {
+		Options.MatlabSaveFormat = b
+	})
+	matlabSaveCheck.Checked = true
+	flatMatrixCheck.Checked = true
+	Options.MatrixRow = 20
+	Options.MatrixCol = 20
 	rowInput := widget.NewEntry()
-	rowInput.SetPlaceHolder("Row")
-	rowInput.SetText(strconv.Itoa(MatrixRowNum))
+	rowInput.SetPlaceHolder("Rows")
+	rowInput.SetText(strconv.Itoa(Options.MatrixRow))
 	rowInput.Validator = func(s string) error {
 		val, err := strconv.Atoi(s)
-		if err != nil {
-			return fmt.Errorf("please enter valid number")
+		if err != nil || val <= 0 {
+			return fmt.Errorf("enter number ")
 		}
-		MatrixRowNum = val + 1
+		Options.MatrixRow = val + 1
 		return nil
 	}
+
 	colInput := widget.NewEntry()
-	colInput.SetPlaceHolder("Column")
-	colInput.SetText(strconv.Itoa(MatrixColNum))
+	colInput.SetPlaceHolder("Columns")
+	colInput.SetText(strconv.Itoa(Options.MatrixCol))
 	colInput.Validator = func(s string) error {
 		val, err := strconv.Atoi(s)
-		if err != nil {
-			return fmt.Errorf("please enter valid number")
+		if err != nil || val <= 0 {
+			return fmt.Errorf("enter number 1-50")
 		}
-		MatrixColNum = val + 1
+		Options.MatrixCol = val + 1
 		return nil
 	}
 
-	rowColContainer := container.NewGridWithColumns(2, rowInput, colInput)
-	submitBtn := widget.NewButton("Add", func() {})
-	labelContainer := container.NewAdaptiveGrid(3, input, container.NewVBox(flatMatrixCheck, matlabSaveCheck), submitBtn)
-	bottomContainer := container.NewVBox(refreshBtn, exportBtn, labelContainer, printBtn, rowColContainer)
+	submitBtn := widget.NewButton("Apply", func() {
+		if input.Text != "" {
+			AddToFile(paint.GetMatrix(w), input.Text)
+			paint.Clear()
+			return
+		}
+		dialog.ShowError(fmt.Errorf("please enter valid label"), w)
+	})
+	submitBtn.Importance = widget.MediumImportance
 
-	// Create a container with proper layout
+	// Theme switcher
+	themeBtn := widget.NewButtonWithIcon("Theme", theme.ColorPaletteIcon(), func() {
+		currentTheme = (currentTheme + 1) % len(themes)
+		a.Settings().SetTheme(themes[currentTheme])
+	})
+
+	// Layout containers
+	settingsContainer := container.NewVBox(
+		widget.NewLabel("Matrix Settings:"),
+		container.NewGridWithColumns(2, rowInput, colInput),
+		container.NewGridWithColumns(2, flatMatrixCheck, matlabSaveCheck),
+	)
+
+	actionContainer := container.NewVBox(
+		widget.NewLabel("Actions:"),
+		container.NewGridWithColumns(2, refreshBtn, exportBtn),
+		printBtn,
+	)
+
+	labelContainer := container.NewVBox(
+		widget.NewLabel("Label:"),
+		container.NewBorder(nil, nil, nil, submitBtn, input),
+	)
+
+	bottomContainer := container.NewVBox(
+		container.NewPadded(settingsContainer),
+		container.NewPadded(actionContainer),
+		container.NewPadded(labelContainer),
+		container.NewCenter(themeBtn),
+	)
+
+	// Main content with padding
 	content := container.NewBorder(
-		nil,             // Top
-		bottomContainer, // Bottom
-		nil,             // Left
-		nil,             // Right
-		paint,           // Center
+		nil,
+		container.NewPadded(bottomContainer),
+		nil,
+		nil,
+		container.NewPadded(paint),
 	)
 
 	// Set window content and size
 	w.SetContent(content)
-	w.Resize(fyne.NewSize(600, 600)) // Window size
+	w.Resize(fyne.NewSize(800, 700))
 	w.SetFixedSize(true)
-	// This is because first time process gives incorrect results
+	w.CenterOnScreen()
+
+	// Initial setup
 	a.Lifecycle().SetOnStarted(func() {
+		InitializeTemps()
 		oldStdOut := os.Stdout
 		os.Stdout = nil
-		paint.PrintMatrix(w, flatMatrix)
-		fmt.Println(matlabSaveFormat)
+		paint.PrintMatrix(w, Options.FlatMatrix)
 		os.Stdout = oldStdOut
 	})
+	a.Lifecycle().SetOnStopped(func() {
+		if TempData.file != nil {
+			err := os.Remove(TempData.file.Name())
+			if err != nil {
+				fmt.Println(err)
+			}
+			err = os.RemoveAll(TempData.dir)
+			if err != nil {
+				fmt.Println(err)
+			}
+			TempData.file.Close()
+		}
+	})
 	w.ShowAndRun()
+}
 
+// Custom theme definition
+type customTheme struct{}
+
+func (t *customTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
+	switch name {
+	case theme.ColorNameBackground:
+		return color.NRGBA{R: 0x1E, G: 0x1E, B: 0x2E, A: 0xFF}
+	case theme.ColorNameForeground:
+		return color.NRGBA{R: 0xDD, G: 0xDD, B: 0xFF, A: 0xFF}
+	case theme.ColorNamePrimary:
+		return color.NRGBA{R: 0x88, G: 0x66, B: 0xFF, A: 0xFF}
+	case theme.ColorNameFocus:
+		return color.NRGBA{R: 0xAA, G: 0x88, B: 0xFF, A: 0xFF}
+	default:
+		return theme.DefaultTheme().Color(name, variant)
+	}
+}
+
+func (t *customTheme) Font(style fyne.TextStyle) fyne.Resource {
+	return theme.DefaultTheme().Font(style)
+}
+
+func (t *customTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
+	return theme.DefaultTheme().Icon(name)
+}
+
+func (t *customTheme) Size(name fyne.ThemeSizeName) float32 {
+	return theme.DefaultTheme().Size(name)
 }
