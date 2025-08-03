@@ -12,7 +12,7 @@ import (
 func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *image.Gray {
 	croppedImg, err := cutter.Crop(img, cutter.Config{
 		Width:  int(size.Width) + 100,
-		Height: int(size.Height) + 65,
+		Height: int(size.Height) + 44,
 		Anchor: image.Point{X: int(position.X) + 10, Y: int(position.Y) + 10},
 	})
 	if err != nil {

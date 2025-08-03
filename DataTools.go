@@ -61,7 +61,8 @@ func AddToFile(inputData [][]int8, outputData string) error {
 }
 
 func SaveFile(DirPath string) error {
-	file, err := os.Create(filepath.Join(DirPath, "data.csv"))
+	path := filepath.Join(DirPath, "data.csv")
+	file, err := os.Create(path)
 	if err != nil {
 		return err
 	}

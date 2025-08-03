@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 	"image/color"
 	"os"
+	"path/filepath"
 	"strconv"
 )
 
@@ -75,11 +76,26 @@ func main() {
 			dialog.ShowError(errors.New("path is empty"), w)
 			return
 		}
-		err := SaveFile(path)
-		if err != nil {
-			return
+		_, err := os.Stat(filepath.Join(path, "data.csv"))
+		if os.IsNotExist(err) {
+			err = SaveFile(path)
+			if err != nil {
+				return
+			}
+			statusLabel.SetText("Saved!")
+		} else {
+			dialog.ShowConfirm("Warning", "File is exists.are you want replace file?", func(b bool) {
+				if b {
+					err = SaveFile(path)
+					if err != nil {
+						return
+					}
+					statusLabel.SetText("Saved!")
+				} else {
+					statusLabel.SetText("Not Saved!")
+				}
+			}, w)
 		}
-		statusLabel.SetText("Saved!")
 
 	})
 	input := widget.NewEntry()
@@ -136,7 +152,7 @@ func main() {
 		return nil
 	}
 
-	submitBtn := widget.NewButton("Apply", func() {
+	submitBtn := widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), func() {
 		if !Options.SettingsSaved {
 			dialog.ShowError(fmt.Errorf("please first save settings"), w)
 			return
@@ -159,31 +175,36 @@ func main() {
 		currentTheme = (currentTheme + 1) % len(themes)
 		a.Settings().SetTheme(themes[currentTheme])
 	})
-	saveOptionsBtn := widget.NewButton("Save Settings", func() {
+	saveOptionsBtn := widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), func() {
+
 		rowInput.Disable()
 		colInput.Disable()
 		flatMatrixCheck.Disable()
 		matlabSaveCheck.Disable()
 		Options.SettingsSaved = true
 	})
-	resetProjectBtn := widget.NewButton("Reset Project", func() {
-		rowInput.Enable()
-		colInput.Enable()
-		flatMatrixCheck.Enable()
-		matlabSaveCheck.Enable()
-		Options.SettingsSaved = false
-		if TempData.file != nil {
-			err := os.Remove(TempData.file.Name())
-			if err != nil {
-				fmt.Println(err)
-			}
-			err = os.RemoveAll(TempData.dir)
-			if err != nil {
-				fmt.Println(err)
-			}
-			TempData.file.Close()
-		}
-		InitializeTemps()
+	resetProjectBtn := widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), func() {
+		dialog.ShowConfirm("Warning", "Are you sure you want to do that?\nthis is delete your added matrix if you dont saves it. ",
+			func(choice bool) {
+				rowInput.Enable()
+				colInput.Enable()
+				flatMatrixCheck.Enable()
+				matlabSaveCheck.Enable()
+				Options.SettingsSaved = false
+				if TempData.file != nil {
+					err := os.Remove(TempData.file.Name())
+					if err != nil {
+						fmt.Println(err)
+					}
+					err = os.RemoveAll(TempData.dir)
+					if err != nil {
+						fmt.Println(err)
+					}
+					TempData.file.Close()
+				}
+				InitializeTemps()
+			}, w,
+		)
 	})
 	// Layout containers
 	settingsContainer := container.NewVBox(
