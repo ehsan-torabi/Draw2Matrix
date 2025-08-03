@@ -2,6 +2,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
@@ -19,6 +20,7 @@ var Options struct {
 	MatlabSaveFormat bool
 	MatrixCol        int
 	MatrixRow        int
+	SettingsSaved    bool
 }
 
 func main() {
@@ -38,30 +40,47 @@ func main() {
 	// Create components
 	paint := NewPaintWidget()
 	paint.Resize(fyne.NewSize(20, 20))
-
+	statusLabel := widget.NewLabel("start")
 	// Styled buttons
-	refreshBtn := widget.NewButtonWithIcon("Clear", theme.DeleteIcon(), func() {
+	refreshBtn := widget.NewButtonWithIcon("Clear Paint", theme.DeleteIcon(), func() {
 		paint.Clear()
 	})
 	refreshBtn.Importance = widget.HighImportance
 
-	printBtn := widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), func() {
-		paint.PrintMatrix(w, Options.FlatMatrix)
-		err := SaveFile()
+	savePath := widget.NewEntry()
+	savePath.SetPlaceHolder("Path For save file")
+	savePath.Text, _ = os.Getwd()
+
+	changePath := widget.NewButtonWithIcon("Browse", theme.FolderIcon(), func() {
+		dialog.ShowFolderOpen(func(uc fyne.ListableURI, err error) {
+			if err != nil {
+				dialog.ShowError(err, w)
+				return
+			}
+			if uc == nil {
+				return
+			}
+			DirPath := uc.Path()
+			savePath.SetText(DirPath)
+		}, w)
+	})
+
+	saveBtn := widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), func() {
+		if !Options.SettingsSaved {
+			dialog.ShowError(fmt.Errorf("please first save settings"), w)
+			return
+		}
+		path := savePath.Text
+		if path == "" {
+			dialog.ShowError(errors.New("path is empty"), w)
+			return
+		}
+		err := SaveFile(path)
 		if err != nil {
 			return
 		}
-		//dialog.ShowFolderOpen(func(uc fyne.ListableURI, err error) {
-		//	if err != nil {
-		//		dialog.ShowError(err, w)
-		//		return
-		//	}
-		//	if uc == nil {
-		//		return
-		//	}
-		//	filePath := uc.Path()
-		//	fmt.Println("Selected file:", filePath)
-		//}, w)
+		statusLabel.SetText("Saved!")
+
 	})
 	input := widget.NewEntry()
 	input.SetPlaceHolder("Enter Label")
@@ -83,7 +102,6 @@ func main() {
 	})
 	exportBtn.Importance = widget.MediumImportance
 
-	// Checkboxes with custom style
 	flatMatrixCheck := widget.NewCheck("Flat Matrix", func(b bool) {
 		Options.FlatMatrix = b
 	})
@@ -112,16 +130,24 @@ func main() {
 	colInput.Validator = func(s string) error {
 		val, err := strconv.Atoi(s)
 		if err != nil || val <= 0 {
-			return fmt.Errorf("enter number 1-50")
+			return fmt.Errorf("enter number")
 		}
 		Options.MatrixCol = val + 1
 		return nil
 	}
 
 	submitBtn := widget.NewButton("Apply", func() {
+		if !Options.SettingsSaved {
+			dialog.ShowError(fmt.Errorf("please first save settings"), w)
+			return
+		}
 		if input.Text != "" {
-			AddToFile(paint.GetMatrix(w), input.Text)
-			paint.Clear()
+			err := AddToFile(paint.GetMatrix(w), input.Text)
+			if err != nil {
+				dialog.ShowError(fmt.Errorf("error to add matrix"), w)
+				return
+			}
+			statusLabel.SetText("Added!")
 			return
 		}
 		dialog.ShowError(fmt.Errorf("please enter valid label"), w)
@@ -133,18 +159,47 @@ func main() {
 		currentTheme = (currentTheme + 1) % len(themes)
 		a.Settings().SetTheme(themes[currentTheme])
 	})
-
+	saveOptionsBtn := widget.NewButton("Save Settings", func() {
+		rowInput.Disable()
+		colInput.Disable()
+		flatMatrixCheck.Disable()
+		matlabSaveCheck.Disable()
+		Options.SettingsSaved = true
+	})
+	resetProjectBtn := widget.NewButton("Reset Project", func() {
+		rowInput.Enable()
+		colInput.Enable()
+		flatMatrixCheck.Enable()
+		matlabSaveCheck.Enable()
+		Options.SettingsSaved = false
+		if TempData.file != nil {
+			err := os.Remove(TempData.file.Name())
+			if err != nil {
+				fmt.Println(err)
+			}
+			err = os.RemoveAll(TempData.dir)
+			if err != nil {
+				fmt.Println(err)
+			}
+			TempData.file.Close()
+		}
+		InitializeTemps()
+	})
 	// Layout containers
 	settingsContainer := container.NewVBox(
 		widget.NewLabel("Matrix Settings:"),
 		container.NewGridWithColumns(2, rowInput, colInput),
 		container.NewGridWithColumns(2, flatMatrixCheck, matlabSaveCheck),
+		container.NewGridWithColumns(2, resetProjectBtn, saveOptionsBtn),
 	)
 
+	pathContainer := container.NewVBox(
+		container.NewGridWithColumns(2, savePath, changePath),
+	)
 	actionContainer := container.NewVBox(
 		widget.NewLabel("Actions:"),
 		container.NewGridWithColumns(2, refreshBtn, exportBtn),
-		printBtn,
+		pathContainer, saveBtn,
 	)
 
 	labelContainer := container.NewVBox(
@@ -152,11 +207,15 @@ func main() {
 		container.NewBorder(nil, nil, nil, submitBtn, input),
 	)
 
+	themeContainer := container.NewVBox(
+		container.NewBorder(nil, nil, nil, statusLabel, themeBtn),
+	)
+
 	bottomContainer := container.NewVBox(
 		container.NewPadded(settingsContainer),
 		container.NewPadded(actionContainer),
 		container.NewPadded(labelContainer),
-		container.NewCenter(themeBtn),
+		container.NewPadded(themeContainer),
 	)
 
 	// Main content with padding

@@ -22,8 +22,8 @@ func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *im
 	draw.Draw(dst, img.Bounds(), croppedImg, image.Point{}, draw.Over)
 	final := image.NewGray(image.Rect(0, 0, Options.MatrixRow, Options.MatrixCol))
 	draw.CatmullRom.Scale(final, final.Rect, croppedImg, croppedImg.Bounds(), draw.Over, nil)
-	for i := 1; i != Options.MatrixRow; i++ {
-		for j := 1; j != Options.MatrixCol-1; j++ {
+	for i := 0; i != Options.MatrixRow; i++ {
+		for j := 0; j != Options.MatrixCol-1; j++ {
 			y := final.GrayAt(i, j).Y
 			if 255 > y {
 				final.Set(i, j, color.Black)
