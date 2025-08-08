@@ -78,7 +78,7 @@ func main() {
 		}
 		_, err := os.Stat(filepath.Join(path, "data.csv"))
 		if os.IsNotExist(err) {
-			err = SaveFile(path)
+			err = SaveFile(path, "data.csv")
 			if err != nil {
 				return
 			}
@@ -86,7 +86,7 @@ func main() {
 		} else {
 			dialog.ShowConfirm("Warning", "File is exists.are you want replace file?", func(b bool) {
 				if b {
-					err = SaveFile(path)
+					err = SaveFile(path, "data.csv")
 					if err != nil {
 						return
 					}
