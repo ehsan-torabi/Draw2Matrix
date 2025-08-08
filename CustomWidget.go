@@ -69,7 +69,7 @@ func (p *PaintWidget) PrintMatrix(w fyne.Window, flat bool) {
 	mat := image2BinaryMatrix(img)
 	fmt.Println()
 	if flat {
-		fmt.Println(ConvertToFlattenMatric(mat))
+		fmt.Println(ToFlattenMatric(mat))
 	} else {
 		for _, line := range mat {
 			fmt.Println(line)

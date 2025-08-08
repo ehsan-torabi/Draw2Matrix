@@ -6,15 +6,24 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+)
+
+type FlatDirection int8
+
+const (
+	RowFlat FlatDirection = iota
+	ColFlat
 )
 
 var TempData struct {
-	file  *os.File
-	dir   string
-	saved bool
+	file       *os.File
+	targetFile *os.File
+	dir        string
+	saved      bool
 }
 
-func ConvertToFlattenMatric(matric [][]int8) []int8 {
+func ToFlattenMatric(matric [][]int8) []int8 {
 	result := make([]int8, 0)
 	for _, i := range matric {
 		for _, j := range i {
@@ -24,7 +33,22 @@ func ConvertToFlattenMatric(matric [][]int8) []int8 {
 	return result
 }
 
-func InitializeTemps() {
+func ToFlattenMatricString(matric [][]int8, direction FlatDirection) string {
+	rowFlatten := ToFlattenMatric(matric)
+	if direction == RowFlat {
+		result := fmt.Sprintf("%d", rowFlatten)
+		return result
+	} else if direction == ColFlat {
+		var tempSlice []string
+		for _, element := range rowFlatten {
+			tempSlice = append(tempSlice, fmt.Sprintf("%d", element))
+		}
+		return strings.Join(tempSlice, "\n")
+	}
+	return ""
+}
+
+func InitializeTemps(forMatlab bool) {
 	var err error
 	temp, err := os.MkdirTemp(".", "temp")
 	if err != nil {
@@ -35,6 +59,9 @@ func InitializeTemps() {
 	if err != nil {
 		panic(err)
 	}
+	if forMatlab {
+		TempData.targetFile, err = os.CreateTemp(temp, "target")
+	}
 	TempData.saved = false
 }
 
@@ -43,7 +70,7 @@ func AddToFile(inputData [][]int8, outputData string) error {
 	defer inp.Flush()
 	inp.UseCRLF = true
 	if Options.FlatMatrix {
-		err := inp.Write([]string{fmt.Sprintf("%d", ConvertToFlattenMatric(inputData)), outputData})
+		err := inp.Write([]string{ToFlattenMatricString(inputData, RowFlat), outputData})
 		if err != nil {
 			return err
 		}

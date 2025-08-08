@@ -176,12 +176,12 @@ func main() {
 		a.Settings().SetTheme(themes[currentTheme])
 	})
 	saveOptionsBtn := widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), func() {
-
 		rowInput.Disable()
 		colInput.Disable()
 		flatMatrixCheck.Disable()
 		matlabSaveCheck.Disable()
 		Options.SettingsSaved = true
+		InitializeTemps(Options.MatlabSaveFormat)
 	})
 	resetProjectBtn := widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), func() {
 		dialog.ShowConfirm("Warning", "Are you sure you want to do that?\nthis is delete your added matrix if you dont saves it. ",
@@ -202,7 +202,6 @@ func main() {
 					}
 					TempData.file.Close()
 				}
-				InitializeTemps()
 			}, w,
 		)
 	})
@@ -256,7 +255,6 @@ func main() {
 
 	// Initial setup
 	a.Lifecycle().SetOnStarted(func() {
-		InitializeTemps()
 		oldStdOut := os.Stdout
 		os.Stdout = nil
 		paint.PrintMatrix(w, Options.FlatMatrix)
@@ -265,6 +263,10 @@ func main() {
 	a.Lifecycle().SetOnStopped(func() {
 		if TempData.file != nil {
 			err := os.Remove(TempData.file.Name())
+			if err != nil {
+				fmt.Println(err)
+			}
+			err = os.Remove(TempData.targetFile.Name())
 			if err != nil {
 				fmt.Println(err)
 			}
