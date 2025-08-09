@@ -22,11 +22,11 @@ import (
 
 // Options stores the global application settings
 var Options struct {
-	FlatMatrix       bool  // Whether to flatten the matrix when saving
-	MatlabSaveFormat bool  // Whether to save in MATLAB compatible format
-	MatrixCol        int   // Number of columns in the output matrix
-	MatrixRow        int   // Number of rows in the output matrix
-	SettingsSaved    bool  // Whether settings have been saved and locked
+	FlatMatrix       bool // Whether to flatten the matrix when saving
+	MatlabSaveFormat bool // Whether to save in MATLAB compatible format
+	MatrixCol        int  // Number of columns in the output matrix
+	MatrixRow        int  // Number of rows in the output matrix
+	SettingsSaved    bool // Whether settings have been saved and locked
 }
 
 // main initializes and runs the Draw2Matrix application
@@ -45,9 +45,9 @@ func main() {
 	a.Settings().SetTheme(themes[currentTheme])
 
 	// Initialize default application options
-	Options.FlatMatrix = true       // Default to flat matrix output
-	Options.MatlabSaveFormat = true // Default to MATLAB format
-	
+	Options.FlatMatrix = false       // Default to flat matrix output
+	Options.MatlabSaveFormat = false // Default to MATLAB format
+
 	// Initialize UI components
 	paint := NewPaintWidget()
 	paint.Resize(fyne.NewSize(20, 20))
@@ -91,14 +91,14 @@ func main() {
 			dialog.ShowError(fmt.Errorf("please first save settings"), w)
 			return
 		}
-		
+
 		// Validate save path
 		path := savePath.Text
 		if path == "" {
 			dialog.ShowError(errors.New("path is empty"), w)
 			return
 		}
-		
+
 		// Validate data filename
 		dataFileName := dataFileEntry.Text
 		if dataFileName == "" {
@@ -322,7 +322,7 @@ func main() {
 	w.CenterOnScreen()
 
 	// Configure application lifecycle handlers
-	
+
 	// OnStarted: Initialize matrix display
 	a.Lifecycle().SetOnStarted(func() {
 		// Temporarily disable stdout to prevent matrix printing
@@ -331,7 +331,7 @@ func main() {
 		paint.PrintMatrix(w, Options.FlatMatrix)
 		os.Stdout = oldStdOut
 	})
-	
+
 	// OnStopped: Clean up temporary files
 	a.Lifecycle().SetOnStopped(func() {
 		if TempData.file != nil {
@@ -348,7 +348,7 @@ func main() {
 			TempData.file.Close()
 		}
 	})
-	
+
 	// Start the application
 	w.ShowAndRun()
 }
