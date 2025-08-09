@@ -1,4 +1,8 @@
 //go:generate fyne bundle -o data.go Icon.png
+
+// Package main implements a drawing application that converts drawings to matrices
+// The application supports both standard CSV format and MATLAB compatible format
+// for saving the drawn patterns and their corresponding labels.
 package main
 
 import (
@@ -16,29 +20,35 @@ import (
 	"strconv"
 )
 
+// Options stores the global application settings
 var Options struct {
-	FlatMatrix       bool
-	MatlabSaveFormat bool
-	MatrixCol        int
-	MatrixRow        int
-	SettingsSaved    bool
+	FlatMatrix       bool  // Whether to flatten the matrix when saving
+	MatlabSaveFormat bool  // Whether to save in MATLAB compatible format
+	MatrixCol        int   // Number of columns in the output matrix
+	MatrixRow        int   // Number of rows in the output matrix
+	SettingsSaved    bool  // Whether settings have been saved and locked
 }
 
+// main initializes and runs the Draw2Matrix application
 func main() {
+	// Initialize application and main window
 	a := app.New()
 	w := a.NewWindow("Draw2Matrix")
 
-	// Theme settings
-	currentTheme := 0 // 0: light, 1: dark, 2: custom
+	// Setup theme configuration
+	currentTheme := 0 // Theme indices: 0=light, 1=dark, 2=custom
 	themes := []fyne.Theme{
 		theme.LightTheme(),
 		theme.DarkTheme(),
 		&customTheme{},
 	}
 	a.Settings().SetTheme(themes[currentTheme])
-	Options.FlatMatrix = true
-	Options.MatlabSaveFormat = true
-	// Create components
+
+	// Initialize default application options
+	Options.FlatMatrix = true       // Default to flat matrix output
+	Options.MatlabSaveFormat = true // Default to MATLAB format
+	
+	// Initialize UI components
 	paint := NewPaintWidget()
 	paint.Resize(fyne.NewSize(20, 20))
 	statusLabel := widget.NewLabel("start")
@@ -74,30 +84,36 @@ func main() {
 		}, w)
 	})
 
+	// Create save button with file saving functionality
 	saveBtn := widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), func() {
+		// Validate settings are saved
 		if !Options.SettingsSaved {
 			dialog.ShowError(fmt.Errorf("please first save settings"), w)
 			return
 		}
+		
+		// Validate save path
 		path := savePath.Text
 		if path == "" {
 			dialog.ShowError(errors.New("path is empty"), w)
 			return
 		}
+		
+		// Validate data filename
 		dataFileName := dataFileEntry.Text
 		if dataFileName == "" {
 			dialog.ShowError(errors.New("data file name is empty"), w)
 			return
 		}
 
+		// Handle MATLAB format saving
 		if Options.MatlabSaveFormat {
 			targetFileName := targetFileEntry.Text
 			if targetFileName == "" {
 				dialog.ShowError(errors.New("target file name is empty"), w)
 				return
 			}
-			err := SaveFileForMatlab(path, dataFileName, targetFileName)
-			if err != nil {
+			if err := SaveFileForMatlab(path, dataFileName, targetFileName); err != nil {
 				statusLabel.SetText("Not Saved!")
 				return
 			}
@@ -105,18 +121,21 @@ func main() {
 			return
 		}
 
-		_, err := os.Stat(filepath.Join(path, dataFileName+".csv"))
-		if os.IsNotExist(err) {
-			err = SaveFile(path, dataFileName+".csv")
-			if err != nil {
+		// Handle CSV format saving
+		filePath := filepath.Join(path, dataFileName+".csv")
+		if _, err := os.Stat(filePath); os.IsNotExist(err) {
+			// File doesn't exist, save directly
+			if err := SaveFile(path, dataFileName+".csv"); err != nil {
+				statusLabel.SetText("Not Saved!")
 				return
 			}
 			statusLabel.SetText("Saved!")
 		} else {
-			dialog.ShowConfirm("Warning", "File is exists.are you want replace file?", func(b bool) {
+			// File exists, ask for confirmation
+			dialog.ShowConfirm("Warning", "File exists. Do you want to replace it?", func(b bool) {
 				if b {
-					err = SaveFile(path, "data.csv")
-					if err != nil {
+					if err := SaveFile(path, "data.csv"); err != nil {
+						statusLabel.SetText("Not Saved!")
 						return
 					}
 					statusLabel.SetText("Saved!")
@@ -302,59 +321,68 @@ func main() {
 	w.SetFixedSize(true)
 	w.CenterOnScreen()
 
-	// Initial setup
+	// Configure application lifecycle handlers
+	
+	// OnStarted: Initialize matrix display
 	a.Lifecycle().SetOnStarted(func() {
+		// Temporarily disable stdout to prevent matrix printing
 		oldStdOut := os.Stdout
 		os.Stdout = nil
 		paint.PrintMatrix(w, Options.FlatMatrix)
 		os.Stdout = oldStdOut
 	})
+	
+	// OnStopped: Clean up temporary files
 	a.Lifecycle().SetOnStopped(func() {
 		if TempData.file != nil {
-			err := os.Remove(TempData.file.Name())
-			if err != nil {
-				fmt.Println(err)
+			// Remove temporary files and directory
+			if err := os.Remove(TempData.file.Name()); err != nil {
+				fmt.Println("Error removing temp file:", err)
 			}
-			err = os.Remove(TempData.targetFile.Name())
-			if err != nil {
-				fmt.Println(err)
+			if err := os.Remove(TempData.targetFile.Name()); err != nil {
+				fmt.Println("Error removing temp target file:", err)
 			}
-			err = os.RemoveAll(TempData.dir)
-			if err != nil {
-				fmt.Println(err)
+			if err := os.RemoveAll(TempData.dir); err != nil {
+				fmt.Println("Error removing temp directory:", err)
 			}
 			TempData.file.Close()
 		}
 	})
+	
+	// Start the application
 	w.ShowAndRun()
 }
 
-// Custom theme definition
+// customTheme implements a custom dark theme with purple accents
 type customTheme struct{}
 
+// Color returns the color for the specified theme element
 func (t *customTheme) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	switch name {
 	case theme.ColorNameBackground:
-		return color.NRGBA{R: 0x1E, G: 0x1E, B: 0x2E, A: 0xFF}
+		return color.NRGBA{R: 0x1E, G: 0x1E, B: 0x2E, A: 0xFF} // Dark blue-purple background
 	case theme.ColorNameForeground:
-		return color.NRGBA{R: 0xDD, G: 0xDD, B: 0xFF, A: 0xFF}
+		return color.NRGBA{R: 0xDD, G: 0xDD, B: 0xFF, A: 0xFF} // Light purple text
 	case theme.ColorNamePrimary:
-		return color.NRGBA{R: 0x88, G: 0x66, B: 0xFF, A: 0xFF}
+		return color.NRGBA{R: 0x88, G: 0x66, B: 0xFF, A: 0xFF} // Medium purple accents
 	case theme.ColorNameFocus:
-		return color.NRGBA{R: 0xAA, G: 0x88, B: 0xFF, A: 0xFF}
+		return color.NRGBA{R: 0xAA, G: 0x88, B: 0xFF, A: 0xFF} // Light purple focus
 	default:
 		return theme.DefaultTheme().Color(name, variant)
 	}
 }
 
+// Font returns the font resource for the specified text style
 func (t *customTheme) Font(style fyne.TextStyle) fyne.Resource {
 	return theme.DefaultTheme().Font(style)
 }
 
+// Icon returns the icon resource for the specified icon name
 func (t *customTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 	return theme.DefaultTheme().Icon(name)
 }
 
+// Size returns the size for the specified theme element
 func (t *customTheme) Size(name fyne.ThemeSizeName) float32 {
 	return theme.DefaultTheme().Size(name)
 }
