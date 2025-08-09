@@ -49,8 +49,16 @@ func main() {
 	refreshBtn.Importance = widget.HighImportance
 
 	savePath := widget.NewEntry()
-	savePath.SetPlaceHolder("Path For save file")
-	savePath.Text, _ = os.Getwd()
+	savePath.SetPlaceHolder("Directory path For save file")
+
+	dataFileEntry := widget.NewEntry()
+	dataFileEntry.SetPlaceHolder("Data file name")
+	dataFileEntry.SetText("data")
+
+	targetFileEntry := widget.NewEntry()
+	targetFileEntry.SetPlaceHolder("Target file name")
+	targetFileEntry.SetText("target")
+	targetFileEntry.Hide()
 
 	changePath := widget.NewButtonWithIcon("Browse", theme.FolderIcon(), func() {
 		dialog.ShowFolderOpen(func(uc fyne.ListableURI, err error) {
@@ -76,9 +84,30 @@ func main() {
 			dialog.ShowError(errors.New("path is empty"), w)
 			return
 		}
-		_, err := os.Stat(filepath.Join(path, "data.csv"))
+		dataFileName := dataFileEntry.Text
+		if dataFileName == "" {
+			dialog.ShowError(errors.New("data file name is empty"), w)
+			return
+		}
+
+		if Options.MatlabSaveFormat {
+			targetFileName := targetFileEntry.Text
+			if targetFileName == "" {
+				dialog.ShowError(errors.New("target file name is empty"), w)
+				return
+			}
+			err := SaveFileForMatlab(path, dataFileName, targetFileName)
+			if err != nil {
+				statusLabel.SetText("Not Saved!")
+				return
+			}
+			statusLabel.SetText("Saved!")
+			return
+		}
+
+		_, err := os.Stat(filepath.Join(path, dataFileName+".csv"))
 		if os.IsNotExist(err) {
-			err = SaveFile(path, "data.csv")
+			err = SaveFile(path, dataFileName+".csv")
 			if err != nil {
 				return
 			}
@@ -123,9 +152,18 @@ func main() {
 	})
 	matlabSaveCheck := widget.NewCheck("Matlab Save Format", func(b bool) {
 		Options.MatlabSaveFormat = b
+		if b {
+			targetFileEntry.Show()
+			flatMatrixCheck.Disable()
+			flatMatrixCheck.SetChecked(false)
+			Options.FlatMatrix = false
+		} else {
+			targetFileEntry.Hide()
+			flatMatrixCheck.Enable()
+		}
 	})
-	matlabSaveCheck.Checked = true
-	flatMatrixCheck.Checked = true
+	matlabSaveCheck.Checked = false
+	flatMatrixCheck.Checked = false
 	Options.MatrixRow = 20
 	Options.MatrixCol = 20
 	rowInput := widget.NewEntry()
@@ -158,6 +196,15 @@ func main() {
 			return
 		}
 		if input.Text != "" {
+			if Options.MatlabSaveFormat {
+				err := AddToFileForMatlab(paint.GetMatrix(w), input.Text)
+				if err != nil {
+					dialog.ShowError(fmt.Errorf("error to add matrix"), w)
+					return
+				}
+				statusLabel.SetText("Added!")
+				return
+			}
 			err := AddToFile(paint.GetMatrix(w), input.Text)
 			if err != nil {
 				dialog.ShowError(fmt.Errorf("error to add matrix"), w)
@@ -215,6 +262,8 @@ func main() {
 
 	pathContainer := container.NewVBox(
 		container.NewGridWithColumns(2, savePath, changePath),
+		dataFileEntry,
+		targetFileEntry,
 	)
 	actionContainer := container.NewVBox(
 		widget.NewLabel("Actions:"),
@@ -249,7 +298,7 @@ func main() {
 
 	// Set window content and size
 	w.SetContent(content)
-	w.Resize(fyne.NewSize(800, 700))
+	w.Resize(fyne.NewSize(800, 800))
 	w.SetFixedSize(true)
 	w.CenterOnScreen()
 
