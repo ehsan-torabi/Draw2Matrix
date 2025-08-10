@@ -24,11 +24,11 @@ const (
 
 // TempData stores temporary files and data during program execution
 var TempData struct {
-	file       *os.File    // Temporary file for storing matrix data
-	targetFile *os.File    // Temporary file for storing target data (used in MATLAB format)
-	dir        string      // Directory path for temporary files
-	saved      bool        // Flag indicating if data has been saved
-	tempMatrix [][]int8    // Temporary storage for matrix data
+	file       *os.File // Temporary file for storing matrix data
+	targetFile *os.File // Temporary file for storing target data (used in MATLAB format)
+	dir        string   // Directory path for temporary files
+	saved      bool     // Flag indicating if data has been saved
+	tempMatrix [][]int8 // Temporary storage for matrix data
 }
 
 // transposeMatrix converts a matrix to its transpose form
@@ -137,30 +137,30 @@ func processForMatlabString(matrix [][]int8) string {
 func AddToFileForMatlab(inputData [][]int8, outputData string) error {
 	outputFile := TempData.targetFile
 	var tempByte = make([]byte, 1)
-	
+
 	// Check if file is empty
 	n, err := outputFile.ReadAt(tempByte, 0)
 	if err != nil && err != io.EOF {
 		return err
 	}
-	
+
 	// Initialize file with opening bracket if empty
 	if n == 0 || err == io.EOF {
 		if _, err = outputFile.WriteString("[ "); err != nil {
 			return err
 		}
 	}
-	
+
 	// Store flattened matrix data
 	TempData.tempMatrix = append(TempData.tempMatrix, ToFlattenMatrix(inputData))
 	fmt.Println(TempData.tempMatrix)
-	
+
 	// Write target data with space
 	target := outputData + " "
 	if _, err = outputFile.WriteString(target); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -170,21 +170,21 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 	// Prepare file paths
 	dataPath := filepath.Join(dirPath, dataFileName+".txt")
 	targetPath := filepath.Join(dirPath, targetFileName+".txt")
-	
+
 	// Create data file
 	dataFile, err := os.OpenFile(dataPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
 	defer dataFile.Close()
-	
+
 	// Create target file
 	targetFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
 	defer targetFile.Close()
-	
+
 	// Open temporary target file
 	tempTargetFile, err := os.OpenFile(TempData.targetFile.Name(), os.O_APPEND|os.O_RDONLY, 0600)
 	if err != nil {
@@ -197,22 +197,22 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 	if _, err = dataFile.WriteString(finalData); err != nil {
 		return err
 	}
-	
+
 	// Write target data with closing bracket
 	if _, err = targetFile.Seek(0, io.SeekEnd); err != nil {
 		return err
 	}
-	
+
 	scanner := bufio.NewScanner(tempTargetFile)
 	var line string
 	for scanner.Scan() {
 		line += scanner.Text()
 	}
-	
+
 	if _, err = targetFile.WriteString(line + "]"); err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -222,14 +222,14 @@ func AddToFile(inputData [][]int8, outputData string) error {
 	csvWriter := csv.NewWriter(TempData.file)
 	defer csvWriter.Flush()
 	csvWriter.UseCRLF = true
-	
+
 	var dataString string
 	if Options.FlatMatrix {
 		dataString = ToFlattenMatrixString(inputData, RowFlat)
 	} else {
 		dataString = fmt.Sprintf("%d", inputData)
 	}
-	
+
 	if err := csvWriter.Write([]string{dataString, outputData}); err != nil {
 		return err
 	}
@@ -246,25 +246,25 @@ func SaveFile(dirPath, filename string) error {
 		return err
 	}
 	defer file.Close()
-	
+
 	// Write header for non-MATLAB format
 	if !Options.MatlabSaveFormat {
 		if _, err = file.WriteString("Input,Target\n"); err != nil {
 			return err
 		}
 	}
-	
+
 	// Copy temporary file contents to final file
 	tempFile, err := os.OpenFile(TempData.file.Name(), os.O_RDONLY, os.ModePerm)
 	if err != nil {
 		return err
 	}
 	defer tempFile.Close()
-	
+
 	if _, err = io.Copy(file, tempFile); err != nil {
 		return err
 	}
-	
+
 	TempData.saved = true
 	return nil
 }

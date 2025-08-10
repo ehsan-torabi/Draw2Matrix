@@ -4,7 +4,6 @@ package main
 import (
 	"fyne.io/fyne/v2"
 	"github.com/anthonynsimon/bild/transform"
-	"github.com/oliamb/cutter"
 	"golang.org/x/image/draw"
 	"image"
 	"image/color"
@@ -14,26 +13,26 @@ import (
 // It crops, scales, and binarizes the image according to the specified dimensions
 func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *image.Gray {
 	// Crop the image with padding
-	croppedImg, err := cutter.Crop(img, cutter.Config{
-		Width:  int(size.Width) + 100,  // Add padding to width
-		Height: int(size.Height) + 44,   // Add padding to height
-		Anchor: image.Point{X: int(position.X) + 10, Y: int(position.Y) + 10},
-	})
-	if err != nil {
-		panic(err)
-	}
-	
+	//croppedImg, err := cutter.Crop(img, cutter.Config{
+	//	Width:  int(size.Width),  // Add padding to width
+	//	Height: int(size.Height), // Add padding to height
+	//	Anchor: image.Point{X: int(position.X), Y: int(position.Y)},
+	//})
+	//if err != nil {
+	//	panic(err)
+	//}
+
 	// Create a black and white palette image
 	dst := image.NewPaletted(
-		image.Rect(0, 0, croppedImg.Bounds().Size().X, croppedImg.Bounds().Size().Y),
+		image.Rect(0, 0, img.Bounds().Size().X, img.Bounds().Size().Y),
 		color.Palette{color.White, color.Black},
 	)
-	draw.Draw(dst, img.Bounds(), croppedImg, image.Point{}, draw.Over)
-	
+	draw.Draw(dst, img.Bounds(), img, image.Point{}, draw.Over)
+
 	// Create final grayscale image with desired dimensions
 	final := image.NewGray(image.Rect(0, 0, Options.MatrixRow, Options.MatrixCol))
-	draw.CatmullRom.Scale(final, final.Rect, croppedImg, croppedImg.Bounds(), draw.Over, nil)
-	
+	draw.CatmullRom.Scale(final, final.Rect, img, img.Bounds(), draw.Over, nil)
+
 	// Binarize the image (convert to pure black and white)
 	for i := 0; i != Options.MatrixRow; i++ {
 		for j := 0; j != Options.MatrixCol-1; j++ {
@@ -44,7 +43,7 @@ func imageProcessor(img image.Image, size fyne.Size, position fyne.Position) *im
 			}
 		}
 	}
-	
+
 	return final
 }
 
@@ -55,11 +54,11 @@ func image2BinaryMatrix(img *image.Gray) [][]int8 {
 	// Rotate and flip the image for correct orientation
 	temp := transform.Rotate(img, 90, nil)
 	temp = transform.FlipH(temp)
-	
+
 	// Draw the transformed image back to the original
 	rect := image.Rect(0, 0, img.Bounds().Dx(), img.Bounds().Dy())
 	draw.Draw(img, rect, temp, image.Point{}, draw.Over)
-	
+
 	// Create binary matrix
 	result := make([][]int8, Options.MatrixRow-1)
 	for i := 0; i != Options.MatrixRow-1; i++ {

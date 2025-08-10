@@ -27,9 +27,6 @@ type PaintWidget struct {
 func (p *PaintWidget) CreateRenderer() fyne.WidgetRenderer {
 	// Create background rectangle
 	rect := canvas.NewRectangle(color.RGBA{255, 255, 255, 255})
-	rect.StrokeColor = color.RGBA{100, 100, 100, 255}
-	rect.StrokeWidth = 1
-	rect.Resize(fyne.NewSize(20, 20))
 
 	return &paintRenderer{
 		widget:  p,
@@ -106,7 +103,7 @@ func (p *PaintWidget) ExportToPNG(w fyne.Window, filename string) error {
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
-	
+
 	// Create output file
 	file, err := os.Create(filepath.Join("output", filename))
 	if err != nil {

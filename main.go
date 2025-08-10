@@ -33,8 +33,7 @@ var Options struct {
 func main() {
 	// Initialize application and main window
 	a := app.New()
-	w := a.NewWindow("Draw2Matrix")
-
+	window := a.NewWindow("Draw2Matrix")
 	// Setup theme configuration
 	currentTheme := 0 // Theme indices: 0=light, 1=dark, 2=custom
 	themes := []fyne.Theme{
@@ -50,7 +49,7 @@ func main() {
 
 	// Initialize UI components
 	paint := NewPaintWidget()
-	paint.Resize(fyne.NewSize(20, 20))
+	paintWindow := NewPaintWindow(a, paint)
 	statusLabel := widget.NewLabel("start")
 	// Styled buttons
 	refreshBtn := widget.NewButtonWithIcon("Clear Paint", theme.DeleteIcon(), func() {
@@ -70,10 +69,18 @@ func main() {
 	targetFileEntry.SetText("target")
 	targetFileEntry.Hide()
 
+	openPaint := widget.NewButtonWithIcon("OpenPaint", theme.WindowMaximizeIcon(), func() {
+		if paintWindow != nil {
+			paintWindow.Close()
+		}
+		paintWindow = NewPaintWindow(a, paint)
+		paintWindow.Show()
+	})
+
 	changePath := widget.NewButtonWithIcon("Browse", theme.FolderIcon(), func() {
 		dialog.ShowFolderOpen(func(uc fyne.ListableURI, err error) {
 			if err != nil {
-				dialog.ShowError(err, w)
+				dialog.ShowError(err, window)
 				return
 			}
 			if uc == nil {
@@ -81,28 +88,28 @@ func main() {
 			}
 			DirPath := uc.Path()
 			savePath.SetText(DirPath)
-		}, w)
+		}, window)
 	})
 
 	// Create save button with file saving functionality
 	saveBtn := widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), func() {
 		// Validate settings are saved
 		if !Options.SettingsSaved {
-			dialog.ShowError(fmt.Errorf("please first save settings"), w)
+			dialog.ShowError(fmt.Errorf("please first save settings"), window)
 			return
 		}
 
 		// Validate save path
 		path := savePath.Text
 		if path == "" {
-			dialog.ShowError(errors.New("path is empty"), w)
+			dialog.ShowError(errors.New("path is empty"), window)
 			return
 		}
 
 		// Validate data filename
 		dataFileName := dataFileEntry.Text
 		if dataFileName == "" {
-			dialog.ShowError(errors.New("data file name is empty"), w)
+			dialog.ShowError(errors.New("data file name is empty"), window)
 			return
 		}
 
@@ -110,7 +117,7 @@ func main() {
 		if Options.MatlabSaveFormat {
 			targetFileName := targetFileEntry.Text
 			if targetFileName == "" {
-				dialog.ShowError(errors.New("target file name is empty"), w)
+				dialog.ShowError(errors.New("target file name is empty"), window)
 				return
 			}
 			if err := SaveFileForMatlab(path, dataFileName, targetFileName); err != nil {
@@ -142,7 +149,7 @@ func main() {
 				} else {
 					statusLabel.SetText("Not Saved!")
 				}
-			}, w)
+			}, window)
 		}
 
 	})
@@ -159,7 +166,7 @@ func main() {
 		if input.Text != "" {
 			filename = input.Text + ".png"
 		}
-		err := paint.ExportToPNG(w, filename)
+		err := paint.ExportToPNG(paintWindow, filename)
 		if err != nil {
 			fmt.Printf("Export error: %s", err)
 		}
@@ -211,31 +218,30 @@ func main() {
 
 	submitBtn := widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), func() {
 		if !Options.SettingsSaved {
-			dialog.ShowError(fmt.Errorf("please first save settings"), w)
+			dialog.ShowError(fmt.Errorf("please first save settings"), window)
 			return
 		}
 		if input.Text != "" {
 			if Options.MatlabSaveFormat {
-				err := AddToFileForMatlab(paint.GetMatrix(w), input.Text)
+				err := AddToFileForMatlab(paint.GetMatrix(paintWindow), input.Text)
 				if err != nil {
-					dialog.ShowError(fmt.Errorf("error to add matrix"), w)
+					dialog.ShowError(fmt.Errorf("error to add matrix"), window)
 					return
 				}
 				statusLabel.SetText("Added!")
 				return
 			}
-			err := AddToFile(paint.GetMatrix(w), input.Text)
+			err := AddToFile(paint.GetMatrix(paintWindow), input.Text)
 			if err != nil {
-				dialog.ShowError(fmt.Errorf("error to add matrix"), w)
+				dialog.ShowError(fmt.Errorf("error to add matrix"), window)
 				return
 			}
 			statusLabel.SetText("Added!")
 			return
 		}
-		dialog.ShowError(fmt.Errorf("please enter valid label"), w)
+		dialog.ShowError(fmt.Errorf("please enter valid label"), window)
 	})
 	submitBtn.Importance = widget.MediumImportance
-
 	// Theme switcher
 	themeBtn := widget.NewButtonWithIcon("Theme", theme.ColorPaletteIcon(), func() {
 		currentTheme = (currentTheme + 1) % len(themes)
@@ -268,11 +274,12 @@ func main() {
 					}
 					TempData.file.Close()
 				}
-			}, w,
+			}, window,
 		)
 	})
 	// Layout containers
 	settingsContainer := container.NewVBox(
+		openPaint,
 		widget.NewLabel("Matrix Settings:"),
 		container.NewGridWithColumns(2, rowInput, colInput),
 		container.NewGridWithColumns(2, flatMatrixCheck, matlabSaveCheck),
@@ -312,23 +319,23 @@ func main() {
 		container.NewPadded(bottomContainer),
 		nil,
 		nil,
-		container.NewPadded(paint),
+		nil,
 	)
 
 	// Set window content and size
-	w.SetContent(content)
-	w.Resize(fyne.NewSize(800, 800))
-	w.SetFixedSize(true)
-	w.CenterOnScreen()
+	window.SetContent(content)
+	window.SetMaster()
+	window.Resize(fyne.NewSize(800, 500))
+	window.SetFixedSize(true)
+	window.CenterOnScreen()
 
 	// Configure application lifecycle handlers
-
 	// OnStarted: Initialize matrix display
 	a.Lifecycle().SetOnStarted(func() {
 		// Temporarily disable stdout to prevent matrix printing
 		oldStdOut := os.Stdout
 		os.Stdout = nil
-		paint.PrintMatrix(w, Options.FlatMatrix)
+		paint.PrintMatrix(paintWindow, Options.FlatMatrix)
 		os.Stdout = oldStdOut
 	})
 
@@ -350,7 +357,9 @@ func main() {
 	})
 
 	// Start the application
-	w.ShowAndRun()
+	window.Show()
+	paintWindow.Show()
+	a.Run()
 }
 
 // customTheme implements a custom dark theme with purple accents
