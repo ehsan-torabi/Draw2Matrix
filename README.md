@@ -115,7 +115,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Fyne](https://fyne.io/) - GUI toolkit for Go
 - [bild](https://github.com/anthonynsimon/bild) - Image processing library
-- [cutter](https://github.com/oliamb/cutter) - Image cropping library
 
 ## Contact
 
