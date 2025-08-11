@@ -8,7 +8,7 @@ import (
 func NewPaintWindow(a fyne.App, paintObject *PaintWidget) fyne.Window {
 	paintWindow := a.NewWindow("Paint")
 	paintWindow.SetContent(container.NewPadded(paintObject))
-	paintWindow.Resize(fyne.NewSize(400, 500))
+	paintWindow.Resize(fyne.NewSize(500, 600))
 	paintWindow.SetFixedSize(true)
 	return paintWindow
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -89,31 +88,16 @@ func InitializeTemps(forMatlab bool) {
 		return
 	}
 	TempData.dir = temp
-	TempData.file, err = os.CreateTemp(temp, "file")
-	if err != nil {
-		panic(err)
-	}
 	if forMatlab {
 		TempData.targetFile, err = os.CreateTemp(temp, "target")
+		TempData.tempMatrix = make([][]int8, 0)
+	} else {
+		TempData.file, err = os.CreateTemp(temp, "file")
+		if err != nil {
+			panic(err)
+		}
 	}
 	TempData.saved = false
-}
-
-func addSemicolon(file *os.File) string {
-	result := ""
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		result += line + ";\n"
-	}
-	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
-	}
-	before, found := strings.CutSuffix(result, ";\n")
-	if !found {
-		return before
-	}
-	return result
 }
 
 func processForMatlabString(matrix [][]int8) string {

@@ -1,0 +1,65 @@
+package main
+
+import (
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
+	"fyne.io/fyne/v2/widget"
+)
+
+var (
+	statusLabel = widget.NewLabel("start")
+	refreshBtn  = widget.NewButtonWithIcon("Clear Paint", theme.DeleteIcon(), func() {
+		Application.paintObject.Clear()
+	})
+	savePath        = widget.NewEntry()
+	dataFileEntry   = widget.NewEntry()
+	targetFileEntry = widget.NewEntry()
+	openPaint       = widget.NewButtonWithIcon("OpenPaint", theme.WindowMaximizeIcon(), openPaintWindowOperation)
+	changePath      = widget.NewButtonWithIcon("Browse", theme.FolderIcon(), browseOperation)
+	saveBtn         = widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), saveOperation)
+	input           = widget.NewEntry()
+	exportBtn       = widget.NewButtonWithIcon("Export PNG", theme.FileImageIcon(), expertOperation)
+	flatMatrixCheck = widget.NewCheck("Flat Matrix", func(b bool) {
+		Options.FlatMatrix = b
+	})
+	matlabSaveCheck         = widget.NewCheck("Matlab Save Format", matlabSaveCheckBoxFunction)
+	oneHotEncodingSaveCheck = widget.NewCheck("One Hot Encoding Save", oneHotEncodingCheckBoxFunction)
+	colInput                = widget.NewEntry()
+	rowInput                = widget.NewEntry()
+	addBtn                  = widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addButtonFunction)
+	saveOptionsBtn          = widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), saveProjectButtonFunction)
+	resetProjectBtn         = widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), resetProjectButtonFunction)
+)
+
+// Layout containers
+var (
+	settingsContainer = container.NewVBox(
+		openPaint,
+		widget.NewLabel("Matrix Settings:"),
+		container.NewGridWithColumns(2, rowInput, colInput),
+		container.NewGridWithColumns(3, flatMatrixCheck, matlabSaveCheck, oneHotEncodingSaveCheck),
+		container.NewGridWithColumns(2, resetProjectBtn, saveOptionsBtn),
+	)
+
+	pathContainer = container.NewVBox(
+		container.NewGridWithColumns(2, savePath, changePath),
+		dataFileEntry,
+		targetFileEntry,
+	)
+	actionContainer = container.NewVBox(
+		widget.NewLabel("Actions:"),
+		container.NewGridWithColumns(2, refreshBtn, exportBtn),
+		pathContainer, saveBtn,
+	)
+
+	labelContainer = container.NewVBox(
+		widget.NewLabel("Label:"),
+		container.NewBorder(nil, nil, nil, addBtn, input),
+	)
+
+	bottomContainer = container.NewVBox(
+		container.NewPadded(settingsContainer),
+		container.NewPadded(actionContainer),
+		container.NewPadded(labelContainer),
+	)
+)
