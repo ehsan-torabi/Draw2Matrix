@@ -76,7 +76,7 @@ func main() {
 	colInput.SetPlaceHolder("Columns")
 	colInput.SetText(strconv.Itoa(Options.MatrixCol))
 	colInput.Validator = colValidator
-
+	counterLabel.SetText("0")
 	addBtn.Importance = widget.MediumImportance
 
 	// Main content with padding

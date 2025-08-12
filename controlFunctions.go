@@ -4,12 +4,23 @@ import (
 	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/dialog"
+	"image/color"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 )
+
+func addLabelAnimation(obj *canvas.Text) {
+	green := color.NRGBA{G: 0xff, A: 0xff}
+	canvas.NewColorRGBAAnimation(green, color.Black, time.Second*2, func(c color.Color) {
+		obj.Color = c
+		obj.Refresh()
+	}).Start()
+}
 
 func saveOperation() {
 	if !Options.SettingsSaved {
@@ -39,10 +50,10 @@ func saveOperation() {
 			return
 		}
 		if err := SaveFileForMatlab(path, dataFileName, targetFileName); err != nil {
-			statusLabel.SetText("Not Saved!")
+			statusLabel.Text = "Not Saved!"
 			return
 		}
-		statusLabel.SetText("Saved!")
+		statusLabel.Text = "Saved!"
 		return
 	}
 
@@ -51,21 +62,21 @@ func saveOperation() {
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
 		// File doesn't exist, save directly
 		if err = SaveFile(path, dataFileName+".csv"); err != nil {
-			statusLabel.SetText("Not Saved!")
+			statusLabel.Text = "Not Saved!"
 			return
 		}
-		statusLabel.SetText("Saved!")
+		statusLabel.Text = "Saved!"
 	} else {
 		// File exists, ask for confirmation
 		dialog.ShowConfirm("Warning", "File exists. Do you want to replace it?", func(b bool) {
 			if b {
 				if err = SaveFile(path, "data.csv"); err != nil {
-					statusLabel.SetText("Not Saved!")
+					statusLabel.Text = "Not Saved!"
 					return
 				}
-				statusLabel.SetText("Saved!")
+				statusLabel.Text = "Saved!"
 			} else {
-				statusLabel.SetText("Not Saved!")
+				statusLabel.Text = "Not Saved!"
 			}
 		}, Application.mainWindow)
 	}
@@ -119,6 +130,7 @@ func oneHotEncodingCheckBoxFunction(b bool) {
 	if b {
 		flatMatrixCheck.Disable()
 		flatMatrixCheck.SetChecked(false)
+		matlabSaveCheck.SetChecked(true)
 	} else {
 		flatMatrixCheck.Enable()
 	}
@@ -131,12 +143,14 @@ func addButtonFunction() {
 	}
 	if input.Text != "" {
 		if Options.MatlabSaveFormat {
-			err := AddToFileForMatlab(Application.paintObject.GetMatrix(Application.paintWindow), input.Text)
+			AddToFileForMatlab(Application.paintObject.GetMatrix(Application.paintWindow), input.Text)
+			count, err := strconv.Atoi(counterLabel.Text)
 			if err != nil {
-				dialog.ShowError(fmt.Errorf("error to add matrix"), Application.mainWindow)
 				return
 			}
-			statusLabel.SetText("Added!")
+			counterLabel.SetText(strconv.Itoa(count + 1))
+			addLabelAnimation(statusLabel)
+			statusLabel.Text = "Added!"
 			return
 		}
 		err := AddToFile(Application.paintObject.GetMatrix(Application.paintWindow), input.Text)
@@ -144,7 +158,13 @@ func addButtonFunction() {
 			dialog.ShowError(fmt.Errorf("error to add matrix"), Application.mainWindow)
 			return
 		}
-		statusLabel.SetText("Added!")
+		count, err := strconv.Atoi(counterLabel.Text)
+		if err != nil {
+			return
+		}
+		counterLabel.SetText(strconv.Itoa(count + 1))
+		addLabelAnimation(statusLabel)
+		statusLabel.Text = "Added!"
 		return
 	}
 	dialog.ShowError(fmt.Errorf("please enter valid label"), Application.mainWindow)
@@ -156,7 +176,7 @@ func saveProjectButtonFunction() {
 	matlabSaveCheck.Disable()
 	oneHotEncodingSaveCheck.Disable()
 	Options.SettingsSaved = true
-	InitializeTemps(Options.MatlabSaveFormat)
+	InitializeTemps()
 }
 func resetProjectButtonFunction() {
 	dialog.ShowConfirm("Warning", "Are you sure you want to do that?\nthis is delete your added matrix if you dont saves it. ",
@@ -167,6 +187,10 @@ func resetProjectButtonFunction() {
 			matlabSaveCheck.Enable()
 			oneHotEncodingSaveCheck.Enable()
 			Options.SettingsSaved = false
+			TempData.tempTarget = nil
+			TempData.tempMatrix = nil
+			OneHotDictionary.dictionary = nil
+			OneHotDictionary.values = nil
 			if TempData.file != nil {
 				err := os.Remove(TempData.file.Name())
 				if err != nil {

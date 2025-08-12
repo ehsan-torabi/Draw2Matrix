@@ -2,10 +2,10 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +13,11 @@ import (
 
 // FlatDirection represents the direction for flattening a matrix
 type FlatDirection int8
+
+var OneHotDictionary struct {
+	dictionary map[string]interface{}
+	values     []string
+}
 
 const (
 	// RowFlat indicates row-wise flattening of matrix
@@ -28,6 +33,32 @@ var TempData struct {
 	dir        string   // Directory path for temporary files
 	saved      bool     // Flag indicating if data has been saved
 	tempMatrix [][]int8 // Temporary storage for matrix data
+	tempTarget []string // Temporary storage for matrix label
+}
+
+// InitializeTemps creates temporary files and directories for data storage
+// If forMatlab is true, additional files for MATLAB format will be created
+func InitializeTemps() {
+	var err error
+	temp, err := os.MkdirTemp(".", "temp")
+	if err != nil {
+		return
+	}
+	TempData.dir = temp
+	if Options.oneHotEncodingSave {
+		OneHotDictionary.dictionary = map[string]interface{}{}
+		OneHotDictionary.values = []string{}
+	}
+	if Options.SettingsSaved {
+		TempData.tempTarget = make([]string, 0)
+		TempData.tempMatrix = make([][]int8, 0)
+	} else {
+		TempData.file, err = os.CreateTemp(temp, "file")
+		if err != nil {
+			panic(err)
+		}
+	}
+	TempData.saved = false
 }
 
 // transposeMatrix converts a matrix to its transpose form
@@ -79,27 +110,6 @@ func ToFlattenMatrixString(matrix [][]int8, direction FlatDirection) string {
 	return ""
 }
 
-// InitializeTemps creates temporary files and directories for data storage
-// If forMatlab is true, additional files for MATLAB format will be created
-func InitializeTemps(forMatlab bool) {
-	var err error
-	temp, err := os.MkdirTemp(".", "temp")
-	if err != nil {
-		return
-	}
-	TempData.dir = temp
-	if forMatlab {
-		TempData.targetFile, err = os.CreateTemp(temp, "target")
-		TempData.tempMatrix = make([][]int8, 0)
-	} else {
-		TempData.file, err = os.CreateTemp(temp, "file")
-		if err != nil {
-			panic(err)
-		}
-	}
-	TempData.saved = false
-}
-
 func processForMatlabString(matrix [][]int8) string {
 	var result strings.Builder
 	result.Grow(len(matrix))
@@ -116,36 +126,40 @@ func processForMatlabString(matrix [][]int8) string {
 	return result.String()
 }
 
+func oneHotEncoder(label string) []int8 {
+	result := make([]int8, len(OneHotDictionary.values))
+	for i, value := range OneHotDictionary.values {
+		if value == label {
+			result[i] = 1
+			continue
+		}
+		result[i] = 0
+	}
+	return result
+}
+
+func oneHotSaveUtil() string {
+	tempResult := make([][]int8, 0)
+	for _, value := range TempData.tempTarget {
+		tempResult = append(tempResult, oneHotEncoder(value))
+	}
+	result := transposeMatrix(tempResult)
+	return processForMatlabString(result)
+}
+
 // AddToFileForMatlab appends matrix data and its corresponding output
 // to temporary files in MATLAB format
-func AddToFileForMatlab(inputData [][]int8, outputData string) error {
-	outputFile := TempData.targetFile
-	var tempByte = make([]byte, 1)
-
-	// Check if file is empty
-	n, err := outputFile.ReadAt(tempByte, 0)
-	if err != nil && err != io.EOF {
-		return err
-	}
-
-	// Initialize file with opening bracket if empty
-	if n == 0 || err == io.EOF {
-		if _, err = outputFile.WriteString("[ "); err != nil {
-			return err
-		}
-	}
+func AddToFileForMatlab(inputData [][]int8, outputData string) {
 
 	// Store flattened matrix data
 	TempData.tempMatrix = append(TempData.tempMatrix, ToFlattenMatrix(inputData))
-	fmt.Println(TempData.tempMatrix)
-
-	// Write target data with space
-	target := outputData + " "
-	if _, err = outputFile.WriteString(target); err != nil {
-		return err
+	TempData.tempTarget = append(TempData.tempTarget, outputData)
+	if Options.oneHotEncodingSave {
+		if _, ok := OneHotDictionary.dictionary[outputData]; !ok {
+			OneHotDictionary.dictionary[outputData] = true
+			OneHotDictionary.values = append(OneHotDictionary.values, outputData)
+		}
 	}
-
-	return nil
 }
 
 // SaveFileForMatlab saves the matrix data and target data to separate files
@@ -169,32 +183,24 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 	}
 	defer targetFile.Close()
 
-	// Open temporary target file
-	tempTargetFile, err := os.OpenFile(TempData.targetFile.Name(), os.O_APPEND|os.O_RDONLY, 0600)
-	if err != nil {
-		return err
-	}
-	defer tempTargetFile.Close()
-
 	// Write processed matrix data
 	finalData := processForMatlabString(transposeMatrix(TempData.tempMatrix))
 	if _, err = dataFile.WriteString(finalData); err != nil {
 		return err
 	}
 
-	// Write target data with closing bracket
-	if _, err = targetFile.Seek(0, io.SeekEnd); err != nil {
-		return err
-	}
-
-	scanner := bufio.NewScanner(tempTargetFile)
-	var line string
-	for scanner.Scan() {
-		line += scanner.Text()
-	}
-
-	if _, err = targetFile.WriteString(line + "]"); err != nil {
-		return err
+	if Options.oneHotEncodingSave {
+		_, err = targetFile.WriteString(oneHotSaveUtil())
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	} else {
+		_, err = targetFile.WriteString(fmt.Sprintf("%v", TempData.tempTarget))
+		if err != nil {
+			log.Println(err)
+			return err
+		}
 	}
 
 	return nil

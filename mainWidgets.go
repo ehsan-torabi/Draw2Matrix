@@ -1,16 +1,24 @@
 package main
 
 import (
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
+	"image/color"
 )
 
 var (
-	statusLabel = widget.NewLabel("start")
-	refreshBtn  = widget.NewButtonWithIcon("Clear Paint", theme.DeleteIcon(), func() {
+	countValue       = binding.NewString()
+	statusLabel      = canvas.NewText("start", color.Black)
+	counterLabelText = widget.NewLabel("count: ")
+	counterLabel     = widget.NewLabelWithData(countValue)
+	refreshBtn       = widget.NewButtonWithIcon("Clear Paint", theme.DeleteIcon(), func() {
 		Application.paintObject.Clear()
 	})
+
 	savePath        = widget.NewEntry()
 	dataFileEntry   = widget.NewEntry()
 	targetFileEntry = widget.NewEntry()
@@ -51,10 +59,15 @@ var (
 		container.NewGridWithColumns(2, refreshBtn, exportBtn),
 		pathContainer, saveBtn,
 	)
+	statusContainer = container.NewHBox(
+		container.NewPadded(container.NewGridWithColumns(2, counterLabelText, counterLabel)),
+		layout.NewSpacer(),
+		container.NewPadded(statusLabel),
+	)
 
 	labelContainer = container.NewVBox(
 		widget.NewLabel("Label:"),
-		container.NewBorder(nil, nil, nil, addBtn, input),
+		container.NewBorder(nil, statusContainer, nil, addBtn, input),
 	)
 
 	bottomContainer = container.NewVBox(
