@@ -78,6 +78,7 @@ func main() {
 	colInput.Validator = colValidator
 	counterLabel.SetText("0")
 	addBtn.Importance = widget.MediumImportance
+	addAndClearPaintBtn.Importance = widget.DangerImportance
 
 	// Main content with padding
 	content := container.NewBorder(

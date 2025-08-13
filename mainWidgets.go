@@ -18,7 +18,6 @@ var (
 	refreshBtn       = widget.NewButtonWithIcon("Clear Paint", theme.DeleteIcon(), func() {
 		Application.paintObject.Clear()
 	})
-
 	savePath        = widget.NewEntry()
 	dataFileEntry   = widget.NewEntry()
 	targetFileEntry = widget.NewEntry()
@@ -35,8 +34,12 @@ var (
 	colInput                = widget.NewEntry()
 	rowInput                = widget.NewEntry()
 	addBtn                  = widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addButtonFunction)
-	saveOptionsBtn          = widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), saveProjectButtonFunction)
-	resetProjectBtn         = widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), resetProjectButtonFunction)
+	addAndClearPaintBtn     = widget.NewButtonWithIcon("Add & Clear Paint", theme.ContentCutIcon(), func() {
+		addButtonFunction()
+		Application.paintObject.Clear()
+	})
+	saveOptionsBtn  = widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), saveProjectButtonFunction)
+	resetProjectBtn = widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), resetProjectButtonFunction)
 )
 
 // Layout containers
@@ -67,7 +70,7 @@ var (
 
 	labelContainer = container.NewVBox(
 		widget.NewLabel("Label:"),
-		container.NewBorder(nil, statusContainer, nil, addBtn, input),
+		container.NewBorder(nil, statusContainer, addBtn, addAndClearPaintBtn, input),
 	)
 
 	bottomContainer = container.NewVBox(
