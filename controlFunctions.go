@@ -186,6 +186,7 @@ func resetProjectButtonFunction() {
 			flatMatrixCheck.Enable()
 			matlabSaveCheck.Enable()
 			oneHotEncodingSaveCheck.Enable()
+			counterLabel.SetText("0")
 			Options.SettingsSaved = false
 			TempData.tempTarget = nil
 			TempData.tempMatrix = nil

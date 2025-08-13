@@ -49,7 +49,7 @@ func InitializeTemps() {
 		OneHotDictionary.dictionary = map[string]interface{}{}
 		OneHotDictionary.values = []string{}
 	}
-	if Options.SettingsSaved {
+	if Options.MatlabSaveFormat {
 		TempData.tempTarget = make([]string, 0)
 		TempData.tempMatrix = make([][]int8, 0)
 	} else {
