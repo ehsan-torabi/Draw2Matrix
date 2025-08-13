@@ -1,105 +1,188 @@
-# Draw2Matrix
+# Draw2Matrix: Hand-Drawn Pattern to Matrix Converter
 
-Draw2Matrix is a drawing application that converts hand-drawn patterns into binary matrices. It provides an intuitive interface for drawing and exporting patterns in various formats, making it useful for machine learning datasets, pattern recognition, and educational purposes.
+[![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/dl/)
+[![Fyne Version](https://img.shields.io/badge/Fyne-v2.x-7F4FC5?style=flat)](https://fyne.io/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](#installation)
 
-<img src="Icon.png" alt="Draw2Matrix Interface" width="64" height="64">
+> Convert hand-drawn patterns into machine learning-ready matrices with real-time processing and multiple export formats.
 
-## Features
+Draw2Matrix is a powerful Go-based drawing application that transforms hand-drawn patterns into machine-readable binary matrices. Built with the Fyne toolkit, it offers real-time conversion of drawings into various formats including CSV, MATLAB (with One-Hot Encoding), and PNG. Perfect for:
 
-- **Interactive Drawing**: Simple and intuitive drawing interface
-- **Matrix Conversion**: Automatically converts drawings to binary matrices
-- **Multiple Export Formats**:
-  - CSV format with optional matrix flattening
-  - MATLAB-compatible format
-  - PNG image export
-- **Customizable Output**:
-  - Adjustable matrix dimensions
-  - Row/Column-wise flattening options
-  - Custom labeling support
-- **Theme Support**:
-  - Light theme
-  - Dark theme
-  - Custom purple theme
+- 🎓 Creating machine learning datasets
+- 📊 Pattern recognition research
+- 🤖 AI/ML training data preparation
+- 🎨 Digital pattern visualization
+- 📚 Educational tools development
 
-## Installation
+<div align="center">
+  <img src="Icon.png" alt="Draw2Matrix Application Interface - Pattern to Matrix Converter" width="64" height="64">
+</div>
 
-### Prerequisites
+## ✨ What's New (August 2025)
 
-- Go 1.22 or later
-- Fyne v2.x toolkit
+- **Enhanced Machine Learning Support**:
 
-## Usage
+  - One-Hot Encoding for MATLAB export - Perfect for neural networks
+  - Matrix counter with progress tracking
+  - Real-time status updates with animations
 
-1. **Launch the Application**:
+- **Improved Drawing Tools**:
 
-   - Run the built executable
-   - Or use `go run .` in the project directory
+  - Responsive paint window with precise input
+  - Advanced image processing for accurate pattern recognition
+  - Real-time preview of matrix conversion
 
-2. **Configure Matrix Settings**:
+- **Performance Optimizations**:
+  - Efficient light theme UI for better pattern visibility
+  - Streamlined initialization process
+  - Optimized codebase for faster processing
 
-   - Set the desired number of rows and columns
-   - Choose between flat matrix and standard format
-   - Enable MATLAB format if needed
-   - Click "Save Settings" to confirm
+## 🚀 Key Features
 
-3. **Drawing**:
+### Pattern Recognition & Conversion
 
-   - Use your mouse to draw patterns in the white canvas area
-   - Click "Clear Paint" to start over
+- Real-time conversion of drawings to binary matrices
+- Automated pattern detection and processing
+- Intelligent matrix size adaptation
 
-4. **Saving Your Work**:
+### Export Flexibility
 
-   - Enter a label for your drawing
-   - Choose a save directory
-   - Select your preferred format (CSV or MATLAB)
-   - Click "Save File" to export
+- Multiple format support:
+  - CSV export with optional flattening
+  - MATLAB format with One-Hot Encoding
+  - High-resolution PNG image export
+- Batch processing capabilities
+- Custom label support
 
-5. **Export Options**:
-   - Save as CSV with matrix data
-   - Export as MATLAB-compatible format
-   - Save as PNG image
+### User Experience
 
-## File Formats
+- Intuitive drawing interface
+- Dynamic matrix size adjustment
+- Customizable output options:
+  - Row/Column flattening
+  - Matrix dimension control
+  - Label management system
 
-### CSV Format
+## 🔧 Installation
+
+### System Requirements
+
+- **Go**: Version 1.22 or later
+- **Fyne**: v2.x toolkit
+- **OS Support**: Windows, macOS, Linux
+
+### Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/ehsan-torabi/Draw2Matrix.git
+
+# Navigate to project directory
+cd Draw2Matrix
+
+# Install dependencies
+go mod download
+
+# Run the application
+go run .
+```
+
+## 📝 Usage Guide
+
+1. **Starting Up**:
+
+   ```bash
+   # Run the compiled executable
+   ./Draw2Matrix
+
+   # Or use Go directly
+   go run .
+   ```
+
+2. **Matrix Configuration**:
+
+   - Set your desired matrix dimensions
+   - Choose output format:
+     - Standard matrix
+     - Flattened matrix
+     - One-Hot encoded (MATLAB)
+   - Apply settings with "Save Settings"
+
+3. **Drawing Interface**:
+
+   - Use the enhanced paint window for drawing
+   - Real-time matrix conversion
+   - Track additions with the matrix counter
+   - Clear canvas option available
+
+4. **Export Process**:
+   - Add descriptive labels
+   - Select export directory
+   - Choose format:
+     - CSV (with flattening options)
+     - MATLAB (with One-Hot encoding)
+     - PNG image
+   - Monitor progress through animated status updates
+
+## 📊 Output Formats
+
+### CSV Export
 
 ```csv
 Input,Target
-[1 0 1 0],label
+[1 0 1 0],label    # Standard format
+1,0,1,0,label      # Flattened format
 ```
 
-### MATLAB Format
+### MATLAB Export
 
-Two files are generated:
+The application generates optimized MATLAB-compatible files:
 
-- `data.txt`: Contains the matrix data in MATLAB matrix format
+1. **Matrix Data** (`data.txt`):
 
-  ```matlab
-  [ 1 0 1 0;
-    0 1 0 1;
-    1 1 0 0 ]
-  ```
+   ```matlab
+   % Standard Format
+   [ 1 0 1;
+     0 1 0;
+     1 1 0 ]
 
-- `target.txt`: Contains the corresponding labels in MATLAB array format
-  ```matlab
-  [ 'A' 'B' 'C' ]
-  ```
+   ```
 
-You can load these files directly in MATLAB using:
+2. **Labels** (`target.txt`):
 
-```matlab
-data = load('data.txt');
-target = textread('target.txt', '%s');
-```
+   ```matlab
+   [ 'A' 'B' 'C' ]
 
-## Project Structure
+   % One-Hot Encoded Format
+   [ 1 0 0;
+     0 1 0;
+     0 0 1 ]
+   ```
 
-- `main.go`: Application entry point and UI setup
-- `CustomWidget.go`: Drawing widget implementation
-- `ImageTools.go`: Image processing utilities
-- `DataTools.go`: Data handling and file operations
+## 🗂️ Project Structure
 
-## Contributing
+- **Core Components**:
+  - `main.go`: Entry point and core application logic
+  - `paintWindow.go`: Enhanced drawing interface
+  - `imageTools.go`: Advanced image processing
+  - `dataTools.go`: Data handling and export functions
+  - `controlFunctions.go`: UI control management
+  - `customWidget.go`: Custom widget implementations
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🌟 Community & Support
+
+### Contributing
+
+We welcome contributions! Here's how you can help:
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -107,17 +190,19 @@ target = textread('target.txt', '%s');
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+### Technology Stack
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- [Go](https://go.dev/) - Modern, fast programming language
+- [Fyne](https://fyne.io/) - Cross-platform GUI toolkit
+- [bild](https://github.com/anthonynsimon/bild) - Advanced image processing
 
-## Acknowledgments
+### Connect & Support
 
-- [Fyne](https://fyne.io/) - GUI toolkit for Go
-- [bild](https://github.com/anthonynsimon/bild) - Image processing library
+- 📧 **Author**: Ehsan Torabi
+- 💬 **Telegram**: [@ehsan_torabi_frs](https://t.me/ehsan_torabi_frs)
+- 🌟 **Project**: [Draw2Matrix on GitHub](https://github.com/ehsan-torabi/Draw2Matrix)
+- 📄 **License**: MIT License - [View License](LICENSE)
 
-## Contact
+### Keywords
 
-Ehsan Torabi - [Telegram - @ehsan_torabi_frs](https://t.me/ehsan_torabi_frs)
-
-Project Link: [https://github.com/ehsan-torabi/Draw2Matrix](https://github.com/ehsan-torabi/Draw2Matrix)
+`pattern recognition`, `machine learning`, `data preprocessing`, `matrix conversion`, `golang`, `fyne`, `drawing tool`, `binary matrix`, `dataset creation`, `educational tool`, `AI training`, `cross-platform`, `open source`
