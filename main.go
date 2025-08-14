@@ -20,8 +20,8 @@ var Options struct {
 	MatlabSaveFormat   bool // Whether to save in MATLAB compatible format
 	MatrixCol          int  // Number of columns in the output matrix
 	MatrixRow          int  // Number of rows in the output matrix
-	SettingsSaved      bool // Whether settings have been saved and locked
-	oneHotEncodingSave bool // Whether to save target to one-hot-encoding format
+	SettingsSaved      bool // Whether settings have been Saved and locked
+	OneHotEncodingSave bool // Whether to save target to one-hot-encoding format
 }
 
 var (
@@ -98,8 +98,6 @@ func main() {
 	// Configure application lifecycle handlers
 	// OnStarted: Initialize matrix display
 	mainApp.Lifecycle().SetOnStarted(onStartedApplication)
-	// OnStopped: Clean up temporary files
-	mainApp.Lifecycle().SetOnStopped(onStoppedApplication)
 
 	// Start the application
 	window.Show()

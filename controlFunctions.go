@@ -1,18 +1,46 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/dialog"
 	"image/color"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strconv"
 	"time"
 )
+
+var SavedProject struct {
+	Options struct {
+		FlatMatrix         bool
+		MatlabSaveFormat   bool
+		MatrixCol          int
+		MatrixRow          int
+		SettingsSaved      bool
+		OneHotEncodingSave bool
+	}
+	TempData struct {
+		Saved      bool
+		buffer     bytes.Buffer
+		TempMatrix [][]int8
+		TempTarget []string
+	}
+	OneHotDictionary struct {
+		Dictionary map[string]interface{}
+		Values     []string
+	}
+	CounterValue   string
+	DataFilePath   string
+	TargetFilePath string
+	Buffer         []byte
+}
 
 func addLabelAnimation(obj *canvas.Text) {
 	green := color.NRGBA{G: 0xff, A: 0xff}
@@ -22,9 +50,13 @@ func addLabelAnimation(obj *canvas.Text) {
 	}).Start()
 }
 
-func saveOperation() {
+func exportFileOperation() {
 	if !Options.SettingsSaved {
 		dialog.ShowError(fmt.Errorf("please first save settings"), Application.mainWindow)
+		return
+	}
+	if counterLabel.Text == "0" {
+		dialog.ShowError(fmt.Errorf("Please first add at least 1 label"), Application.mainWindow)
 		return
 	}
 
@@ -60,15 +92,15 @@ func saveOperation() {
 	// Handle CSV format saving
 	filePath := filepath.Join(path, dataFileName+".csv")
 	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		// File doesn't exist, save directly
+		// file doesn't exist, save directly
 		if err = SaveFile(path, dataFileName+".csv"); err != nil {
 			statusLabel.Text = "Not Saved!"
 			return
 		}
 		statusLabel.Text = "Saved!"
 	} else {
-		// File exists, ask for confirmation
-		dialog.ShowConfirm("Warning", "File exists. Do you want to replace it?", func(b bool) {
+		// file exists, ask for confirmation
+		dialog.ShowConfirm("Warning", "file exists. Do you want to replace it?", func(b bool) {
 			if b {
 				if err = SaveFile(path, "data.csv"); err != nil {
 					statusLabel.Text = "Not Saved!"
@@ -115,7 +147,7 @@ func matlabSaveCheckBoxFunction(b bool) {
 		Application.mainWindow.Canvas().Refresh(Application.mainWindow.Content())
 	}
 }
-func expertOperation() {
+func expertPNGOperation() {
 	filename := "draw.png"
 	if input.Text != "" {
 		filename = input.Text + ".png"
@@ -126,7 +158,7 @@ func expertOperation() {
 	}
 }
 func oneHotEncodingCheckBoxFunction(b bool) {
-	Options.oneHotEncodingSave = b
+	Options.OneHotEncodingSave = b
 	if b {
 		flatMatrixCheck.Disable()
 		flatMatrixCheck.SetChecked(false)
@@ -169,7 +201,7 @@ func addButtonFunction() {
 	}
 	dialog.ShowError(fmt.Errorf("please enter valid label"), Application.mainWindow)
 }
-func saveProjectButtonFunction() {
+func applyProjectSetting() {
 	rowInput.Disable()
 	colInput.Disable()
 	flatMatrixCheck.Disable()
@@ -178,7 +210,7 @@ func saveProjectButtonFunction() {
 	Options.SettingsSaved = true
 	InitializeTemps()
 }
-func resetProjectButtonFunction() {
+func resetProjectSetting() {
 	dialog.ShowConfirm("Warning", "Are you sure you want to do that?\nthis is delete your added matrix if you dont saves it. ",
 		func(choice bool) {
 			rowInput.Enable()
@@ -188,27 +220,14 @@ func resetProjectButtonFunction() {
 			oneHotEncodingSaveCheck.Enable()
 			counterLabel.SetText("0")
 			Options.SettingsSaved = false
-			TempData.tempTarget = nil
-			TempData.tempMatrix = nil
-			OneHotDictionary.dictionary = nil
-			OneHotDictionary.values = nil
-			if TempData.file != nil {
-				err := os.Remove(TempData.file.Name())
-				if err != nil {
-					fmt.Println(err)
-				}
+			TempData.TempTarget = nil
+			TempData.TempMatrix = nil
+			OneHotDictionary.Dictionary = nil
+			OneHotDictionary.Values = nil
+			if &TempData.buffer != nil {
+				TempData.buffer = bytes.Buffer{}
+				TempData.buffer.Reset()
 			}
-			if TempData.targetFile != nil {
-				err := os.Remove(TempData.targetFile.Name())
-				if err != nil {
-					fmt.Println(err)
-				}
-			}
-			err := os.RemoveAll(TempData.dir)
-			if err != nil {
-				fmt.Println(err)
-			}
-			TempData.file.Close()
 
 		}, Application.mainWindow,
 	)
@@ -242,22 +261,88 @@ func onStartedApplication() {
 	Application.paintObject.PrintMatrix(Application.paintWindow, Options.FlatMatrix)
 	os.Stdout = oldStdOut
 }
-func onStoppedApplication() {
-	if TempData.file != nil {
-		err := TempData.file.Close()
+
+func prepareSaveProjectObj() {
+	SavedProject.Options = Options
+	SavedProject.TempData = TempData
+	SavedProject.OneHotDictionary = OneHotDictionary
+	SavedProject.CounterValue = counterLabel.Text
+	SavedProject.Buffer = TempData.buffer.Bytes()
+
+}
+
+func loadProjectFile(reader io.ReadCloser) error {
+	decoder := gob.NewDecoder(reader)
+	err := decoder.Decode(&SavedProject)
+	if err != nil {
+		return err
+	}
+	Options = SavedProject.Options
+	TempData = SavedProject.TempData
+	TempData.buffer.Write(SavedProject.Buffer)
+	OneHotDictionary = SavedProject.OneHotDictionary
+	err = countValue.Set(SavedProject.CounterValue)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	rowInput.Text = strconv.Itoa(Options.MatrixRow - 1)
+	colInput.Text = strconv.Itoa(Options.MatrixCol - 1)
+	oneHotEncodingSaveCheck.SetChecked(Options.OneHotEncodingSave)
+	matlabSaveCheck.SetChecked(Options.MatlabSaveFormat)
+	flatMatrixCheck.SetChecked(Options.FlatMatrix)
+	Application.mainWindow.Content().Refresh()
+	return nil
+}
+
+func saveProjectFileFunction() {
+	dialog.ShowFileSave(func(writer fyne.URIWriteCloser, err error) {
+		if !Options.SettingsSaved {
+			dialog.ShowError(fmt.Errorf("Please first save project settings."), Application.mainWindow)
+			return
+		}
+		prepareSaveProjectObj()
+		encoder := gob.NewEncoder(writer)
+		err = encoder.Encode(SavedProject)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-	}
-	if TempData.targetFile != nil {
-		err := TempData.targetFile.Close()
+
+		err = writer.Close()
 		if err != nil {
-			log.Println(err)
 			return
 		}
-	}
-	if err := os.RemoveAll(TempData.dir); err != nil {
-		log.Println("Error removing temp directory:", err)
-	}
+
+	}, Application.mainWindow)
+
+}
+
+func loadProjectFileFunction() {
+	dialog.ShowFileOpen(func(reader fyne.URIReadCloser, err error) {
+
+		if Options.SettingsSaved {
+			dialog.ShowConfirm("Warning", "Are you sure to load project? Your current session is removed if you dont saved it.", func(b bool) {
+				if b {
+					loadErr := loadProjectFile(reader)
+					if loadErr != nil {
+						dialog.ShowError(fmt.Errorf("error loading project file"), Application.mainWindow)
+						return
+					}
+					applyProjectSetting()
+				}
+
+			}, Application.mainWindow)
+		} else {
+			loadErr := loadProjectFile(reader)
+			if loadErr != nil {
+				dialog.ShowError(fmt.Errorf("error loading project file"), Application.mainWindow)
+				return
+			}
+			applyProjectSetting()
+			statusLabel.Text = "Project loaded!"
+			addLabelAnimation(statusLabel)
+		}
+
+	}, Application.mainWindow)
 }

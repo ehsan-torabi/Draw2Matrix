@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -15,8 +16,8 @@ import (
 type FlatDirection int8
 
 var OneHotDictionary struct {
-	dictionary map[string]interface{}
-	values     []string
+	Dictionary map[string]interface{}
+	Values     []string
 }
 
 const (
@@ -28,37 +29,26 @@ const (
 
 // TempData stores temporary files and data during program execution
 var TempData struct {
-	file       *os.File // Temporary file for storing matrix data
-	targetFile *os.File // Temporary file for storing target data (used in MATLAB format)
-	dir        string   // Directory path for temporary files
-	saved      bool     // Flag indicating if data has been saved
-	tempMatrix [][]int8 // Temporary storage for matrix data
-	tempTarget []string // Temporary storage for matrix label
+	Saved      bool // Flag indicating if data has been Saved
+	buffer     bytes.Buffer
+	TempMatrix [][]int8 // Temporary storage for matrix data
+	TempTarget []string // Temporary storage for matrix label
 }
 
 // InitializeTemps creates temporary files and directories for data storage
 // If forMatlab is true, additional files for MATLAB format will be created
 func InitializeTemps() {
-	var err error
-	temp, err := os.MkdirTemp(".", "temp")
-	if err != nil {
-		return
-	}
-	TempData.dir = temp
-	if Options.oneHotEncodingSave {
-		OneHotDictionary.dictionary = map[string]interface{}{}
-		OneHotDictionary.values = []string{}
+	TempData.Saved = false
+	if Options.OneHotEncodingSave {
+		OneHotDictionary.Dictionary = map[string]interface{}{}
+		OneHotDictionary.Values = []string{}
 	}
 	if Options.MatlabSaveFormat {
-		TempData.tempTarget = make([]string, 0)
-		TempData.tempMatrix = make([][]int8, 0)
-	} else {
-		TempData.file, err = os.CreateTemp(temp, "file")
-		if err != nil {
-			panic(err)
-		}
+		TempData.TempTarget = make([]string, 0)
+		TempData.TempMatrix = make([][]int8, 0)
+
 	}
-	TempData.saved = false
+	TempData.buffer = bytes.Buffer{}
 }
 
 // transposeMatrix converts a matrix to its transpose form
@@ -127,8 +117,8 @@ func processForMatlabString(matrix [][]int8) string {
 }
 
 func oneHotEncoder(label string) []int8 {
-	result := make([]int8, len(OneHotDictionary.values))
-	for i, value := range OneHotDictionary.values {
+	result := make([]int8, len(OneHotDictionary.Values))
+	for i, value := range OneHotDictionary.Values {
 		if value == label {
 			result[i] = 1
 			continue
@@ -140,7 +130,7 @@ func oneHotEncoder(label string) []int8 {
 
 func oneHotSaveUtil() string {
 	tempResult := make([][]int8, 0)
-	for _, value := range TempData.tempTarget {
+	for _, value := range TempData.TempTarget {
 		tempResult = append(tempResult, oneHotEncoder(value))
 	}
 	result := transposeMatrix(tempResult)
@@ -152,12 +142,12 @@ func oneHotSaveUtil() string {
 func AddToFileForMatlab(inputData [][]int8, outputData string) {
 
 	// Store flattened matrix data
-	TempData.tempMatrix = append(TempData.tempMatrix, ToFlattenMatrix(inputData))
-	TempData.tempTarget = append(TempData.tempTarget, outputData)
-	if Options.oneHotEncodingSave {
-		if _, ok := OneHotDictionary.dictionary[outputData]; !ok {
-			OneHotDictionary.dictionary[outputData] = true
-			OneHotDictionary.values = append(OneHotDictionary.values, outputData)
+	TempData.TempMatrix = append(TempData.TempMatrix, ToFlattenMatrix(inputData))
+	TempData.TempTarget = append(TempData.TempTarget, outputData)
+	if Options.OneHotEncodingSave {
+		if _, ok := OneHotDictionary.Dictionary[outputData]; !ok {
+			OneHotDictionary.Dictionary[outputData] = true
+			OneHotDictionary.Values = append(OneHotDictionary.Values, outputData)
 		}
 	}
 }
@@ -184,19 +174,19 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 	defer targetFile.Close()
 
 	// Write processed matrix data
-	finalData := processForMatlabString(transposeMatrix(TempData.tempMatrix))
+	finalData := processForMatlabString(transposeMatrix(TempData.TempMatrix))
 	if _, err = dataFile.WriteString(finalData); err != nil {
 		return err
 	}
 
-	if Options.oneHotEncodingSave {
+	if Options.OneHotEncodingSave {
 		_, err = targetFile.WriteString(oneHotSaveUtil())
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 	} else {
-		_, err = targetFile.WriteString(fmt.Sprintf("%v", TempData.tempTarget))
+		_, err = targetFile.WriteString(fmt.Sprintf("%v", TempData.TempTarget))
 		if err != nil {
 			log.Println(err)
 			return err
@@ -209,7 +199,7 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 // AddToFile appends matrix data and its corresponding output to a CSV file
 // If FlatMatrix option is enabled, the matrix will be flattened before writing
 func AddToFile(inputData [][]int8, outputData string) error {
-	csvWriter := csv.NewWriter(TempData.file)
+	csvWriter := csv.NewWriter(&TempData.buffer)
 	defer csvWriter.Flush()
 	csvWriter.UseCRLF = true
 
@@ -244,17 +234,10 @@ func SaveFile(dirPath, filename string) error {
 		}
 	}
 
-	// Copy temporary file contents to final file
-	tempFile, err := os.OpenFile(TempData.file.Name(), os.O_RDONLY, os.ModePerm)
-	if err != nil {
-		return err
-	}
-	defer tempFile.Close()
-
-	if _, err = io.Copy(file, tempFile); err != nil {
+	if _, err = io.Copy(file, &TempData.buffer); err != nil {
 		return err
 	}
 
-	TempData.saved = true
+	TempData.Saved = true
 	return nil
 }
