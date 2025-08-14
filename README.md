@@ -131,8 +131,7 @@ go run .
 
 ```csv
 Input,Target
-[1 0 1 0],label    # Standard format
-1,0,1,0,label      # Flattened format
+[1 0 1 0],label      # Flattened format
 ```
 
 ### MATLAB Export
