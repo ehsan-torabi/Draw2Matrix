@@ -23,9 +23,9 @@ var (
 	targetFileEntry = widget.NewEntry()
 	openPaint       = widget.NewButtonWithIcon("OpenPaint", theme.WindowMaximizeIcon(), openPaintWindowOperation)
 	changePath      = widget.NewButtonWithIcon("Browse", theme.FolderIcon(), browseOperation)
-	saveBtn         = widget.NewButtonWithIcon("Save File", theme.DocumentSaveIcon(), saveOperation)
+	saveBtn         = widget.NewButtonWithIcon("Save file", theme.DocumentSaveIcon(), exportFileOperation)
 	input           = widget.NewEntry()
-	exportBtn       = widget.NewButtonWithIcon("Export PNG", theme.FileImageIcon(), expertOperation)
+	exportBtn       = widget.NewButtonWithIcon("Export PNG", theme.FileImageIcon(), expertPNGOperation)
 	flatMatrixCheck = widget.NewCheck("Flat Matrix", func(b bool) {
 		Options.FlatMatrix = b
 	})
@@ -38,8 +38,13 @@ var (
 		addButtonFunction()
 		Application.paintObject.Clear()
 	})
-	saveOptionsBtn  = widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), saveProjectButtonFunction)
-	resetProjectBtn = widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), resetProjectButtonFunction)
+	saveOptionsBtn = widget.NewButtonWithIcon("Save Settings", theme.SettingsIcon(), func() {
+		applyProjectSetting(true)
+	})
+	resetProjectBtn = widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), resetProjectSetting)
+	toolbar         = widget.NewToolbar(
+		widget.NewToolbarAction(theme.DocumentSaveIcon(), saveProjectFileFunction),
+		widget.NewToolbarAction(theme.ContentUndoIcon(), loadProjectFileFunction))
 )
 
 // Layout containers
@@ -74,6 +79,7 @@ var (
 	)
 
 	bottomContainer = container.NewVBox(
+		container.NewPadded(toolbar),
 		container.NewPadded(settingsContainer),
 		container.NewPadded(actionContainer),
 		container.NewPadded(labelContainer),

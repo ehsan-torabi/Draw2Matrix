@@ -201,14 +201,17 @@ func addButtonFunction() {
 	}
 	dialog.ShowError(fmt.Errorf("please enter valid label"), Application.mainWindow)
 }
-func applyProjectSetting() {
+func applyProjectSetting(withInitial bool) {
 	rowInput.Disable()
 	colInput.Disable()
 	flatMatrixCheck.Disable()
 	matlabSaveCheck.Disable()
 	oneHotEncodingSaveCheck.Disable()
 	Options.SettingsSaved = true
-	InitializeTemps()
+	if withInitial {
+		InitializeTemps()
+	}
+
 }
 func resetProjectSetting() {
 	dialog.ShowConfirm("Warning", "Are you sure you want to do that?\nthis is delete your added matrix if you dont saves it. ",
@@ -279,8 +282,11 @@ func loadProjectFile(reader io.ReadCloser) error {
 	}
 	Options = SavedProject.Options
 	TempData = SavedProject.TempData
+	copy(TempData.TempMatrix, SavedProject.TempData.TempMatrix)
+	copy(TempData.TempTarget, SavedProject.TempData.TempTarget)
 	TempData.buffer.Write(SavedProject.Buffer)
 	OneHotDictionary = SavedProject.OneHotDictionary
+	copy(OneHotDictionary.Values, SavedProject.OneHotDictionary.Values)
 	err = countValue.Set(SavedProject.CounterValue)
 	if err != nil {
 		log.Println(err)
@@ -329,7 +335,7 @@ func loadProjectFileFunction() {
 						dialog.ShowError(fmt.Errorf("error loading project file"), Application.mainWindow)
 						return
 					}
-					applyProjectSetting()
+					applyProjectSetting(false)
 				}
 
 			}, Application.mainWindow)
@@ -339,7 +345,7 @@ func loadProjectFileFunction() {
 				dialog.ShowError(fmt.Errorf("error loading project file"), Application.mainWindow)
 				return
 			}
-			applyProjectSetting()
+			applyProjectSetting(false)
 			statusLabel.Text = "Project loaded!"
 			addLabelAnimation(statusLabel)
 		}
