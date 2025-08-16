@@ -3,7 +3,7 @@
 [![Go Version](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev/dl/)
 [![Fyne Version](https://img.shields.io/badge/Fyne-v2.x-7F4FC5?style=flat)](https://fyne.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)](#installation)
+[![Platform](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-blue)](https://github.com/ehsan-torabi/Draw2Matrix/releases/latest)
 
 > Convert hand-drawn patterns into machine learning-ready matrices with real-time processing and multiple export formats.
 
