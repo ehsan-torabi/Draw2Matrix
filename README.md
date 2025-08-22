@@ -16,7 +16,7 @@ Draw2Matrix is a powerful Go-based drawing application that transforms hand-draw
 - 📚 Educational tools development
 
 <div align="center">
-  <img src="Icon.png" alt="Draw2Matrix Application Interface - Pattern to Matrix Converter" width="64" height="64">
+  <img src="output.gif" alt="Draw2Matrix Application Interface - Pattern to Matrix Converter">
 </div>
 
 ## ✨ What's New (August 2025)
