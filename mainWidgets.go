@@ -29,12 +29,13 @@ var (
 	flatMatrixCheck = widget.NewCheck("Flat Matrix", func(b bool) {
 		Options.FlatMatrix = b
 	})
-	matlabSaveCheck         = widget.NewCheck("Matlab Save Format", matlabSaveCheckBoxFunction)
-	oneHotEncodingSaveCheck = widget.NewCheck("One Hot Encoding Save", oneHotEncodingCheckBoxFunction)
-	colInput                = widget.NewEntry()
-	rowInput                = widget.NewEntry()
-	addBtn                  = widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addButtonFunction)
-	addAndClearPaintBtn     = widget.NewButtonWithIcon("Add & Clear Paint", theme.ContentCutIcon(), func() {
+	matlabSaveCheck           = widget.NewCheck("Matlab Save Format", matlabSaveCheckBoxFunction)
+	dotMFileWithVariableCheck = widget.NewCheck(".m file save", DotMFileWithVariableCheck)
+	oneHotEncodingSaveCheck   = widget.NewCheck("One Hot Encoding Save", oneHotEncodingCheckBoxFunction)
+	colInput                  = widget.NewEntry()
+	rowInput                  = widget.NewEntry()
+	addBtn                    = widget.NewButtonWithIcon("Add", theme.ContentAddIcon(), addButtonFunction)
+	addAndClearPaintBtn       = widget.NewButtonWithIcon("Add & Clear Paint", theme.ContentCutIcon(), func() {
 		addButtonFunction()
 		Application.paintObject.Clear()
 	})
@@ -44,7 +45,8 @@ var (
 	resetProjectBtn = widget.NewButtonWithIcon("Reset Project", theme.ContentClearIcon(), resetProjectSetting)
 	toolbar         = widget.NewToolbar(
 		widget.NewToolbarAction(theme.DocumentSaveIcon(), saveProjectFileFunction),
-		widget.NewToolbarAction(theme.ContentUndoIcon(), loadProjectFileFunction))
+		widget.NewToolbarAction(theme.ContentUndoIcon(), loadProjectFileFunction),
+		widget.NewToolbarAction(theme.InfoIcon(), aboutBtn))
 )
 
 // Layout containers
@@ -53,7 +55,7 @@ var (
 		openPaint,
 		widget.NewLabel("Matrix Settings:"),
 		container.NewGridWithColumns(2, rowInput, colInput),
-		container.NewGridWithColumns(3, flatMatrixCheck, matlabSaveCheck, oneHotEncodingSaveCheck),
+		container.NewGridWithColumns(4, flatMatrixCheck, matlabSaveCheck, dotMFileWithVariableCheck, oneHotEncodingSaveCheck),
 		container.NewGridWithColumns(2, resetProjectBtn, saveOptionsBtn),
 	)
 

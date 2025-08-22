@@ -8,9 +8,11 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/widget"
 	"image/color"
 	"io"
 	"log"
+	url2 "net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,12 +21,13 @@ import (
 
 var SavedProject struct {
 	Options struct {
-		FlatMatrix         bool
-		MatlabSaveFormat   bool
-		MatrixCol          int
-		MatrixRow          int
-		SettingsSaved      bool
-		OneHotEncodingSave bool
+		FlatMatrix           bool
+		MatlabSaveFormat     bool
+		DotMFileWithVariable bool
+		MatrixCol            int
+		MatrixRow            int
+		SettingsSaved        bool
+		OneHotEncodingSave   bool
 	}
 	TempData struct {
 		Saved      bool
@@ -137,16 +140,24 @@ func matlabSaveCheckBoxFunction(b bool) {
 	Options.MatlabSaveFormat = b
 	if b {
 		targetFileEntry.Enable()
+		dotMFileWithVariableCheck.Enable()
 		flatMatrixCheck.Disable()
 		flatMatrixCheck.SetChecked(false)
 		Options.FlatMatrix = false
 		Application.mainWindow.Canvas().Refresh(Application.mainWindow.Content())
 	} else {
+		dotMFileWithVariableCheck.Disable()
 		targetFileEntry.Disable()
 		flatMatrixCheck.Enable()
 		Application.mainWindow.Canvas().Refresh(Application.mainWindow.Content())
 	}
 }
+
+func DotMFileWithVariableCheck(b bool) {
+	Options.DotMFileWithVariable = b
+
+}
+
 func expertPNGOperation() {
 	filename := "draw.png"
 	if input.Text != "" {
@@ -206,6 +217,7 @@ func applyProjectSetting(withInitial bool) {
 	colInput.Disable()
 	flatMatrixCheck.Disable()
 	matlabSaveCheck.Disable()
+	dotMFileWithVariableCheck.Disable()
 	oneHotEncodingSaveCheck.Disable()
 	Options.SettingsSaved = true
 	if withInitial {
@@ -220,6 +232,7 @@ func resetProjectSetting() {
 			colInput.Enable()
 			flatMatrixCheck.Enable()
 			matlabSaveCheck.Enable()
+			dotMFileWithVariableCheck.Enable()
 			oneHotEncodingSaveCheck.Enable()
 			counterLabel.SetText("0")
 			Options.SettingsSaved = false
@@ -235,12 +248,29 @@ func resetProjectSetting() {
 		}, Application.mainWindow,
 	)
 }
+
+func aboutBtn() {
+	url, _ := url2.Parse("https://github.com/ehsan-torabi")
+	repoURL, _ := url2.Parse("https://github.com/ehsan-torabi/Draw2Matrix")
+	richText := widget.NewRichText(
+		&widget.TextSegment{Text: "Programmed by : Ehsan Torabi Farsani", Style: widget.RichTextStyle{}},
+		&widget.TextSegment{Text: "\nFor more details, visit our ", Style: widget.RichTextStyle{}},
+		&widget.HyperlinkSegment{Text: "Github", URL: url},
+		&widget.TextSegment{Text: "\t", Style: widget.RichTextStyle{}},
+		&widget.HyperlinkSegment{Text: "Draw2Matrix Repository", URL: repoURL},
+		&widget.TextSegment{Text: "\n", Style: widget.RichTextStyle{}},
+	)
+	dialog.NewCustom("About", "exit", richText, Application.mainWindow).Show()
+
+}
+
 func labelValidator(s string) error {
 	if len(s) > 20 {
 		return fmt.Errorf("label too long")
 	}
 	return nil
 }
+
 func rowValidator(s string) error {
 	val, err := strconv.Atoi(s)
 	if err != nil || val <= 0 {
@@ -296,6 +326,7 @@ func loadProjectFile(reader io.ReadCloser) error {
 	colInput.Text = strconv.Itoa(Options.MatrixCol - 1)
 	oneHotEncodingSaveCheck.SetChecked(Options.OneHotEncodingSave)
 	matlabSaveCheck.SetChecked(Options.MatlabSaveFormat)
+	dotMFileWithVariableCheck.SetChecked(Options.DotMFileWithVariable)
 	flatMatrixCheck.SetChecked(Options.FlatMatrix)
 	Application.mainWindow.Content().Refresh()
 	return nil

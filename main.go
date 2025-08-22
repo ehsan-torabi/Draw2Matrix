@@ -16,12 +16,13 @@ import (
 
 // Options stores the global application settings
 var Options struct {
-	FlatMatrix         bool // Whether to flatten the matrix when saving
-	MatlabSaveFormat   bool // Whether to save in MATLAB compatible format
-	MatrixCol          int  // Number of columns in the output matrix
-	MatrixRow          int  // Number of rows in the output matrix
-	SettingsSaved      bool // Whether settings have been Saved and locked
-	OneHotEncodingSave bool // Whether to save target to one-hot-encoding format
+	FlatMatrix           bool // Whether to flatten the matrix when saving
+	MatlabSaveFormat     bool // Whether to save in MATLAB compatible format
+	DotMFileWithVariable bool // Whether to save array in variable for matlab in .m file
+	MatrixCol            int  // Number of columns in the output matrix
+	MatrixRow            int  // Number of rows in the output matrix
+	SettingsSaved        bool // Whether settings have been Saved and locked
+	OneHotEncodingSave   bool // Whether to save target to one-hot-encoding format
 }
 
 var (
@@ -68,6 +69,7 @@ func main() {
 
 	matlabSaveCheck.Checked = false
 	flatMatrixCheck.Checked = false
+	dotMFileWithVariableCheck.Disable()
 
 	rowInput.SetPlaceHolder("Rows")
 	rowInput.SetText(strconv.Itoa(Options.MatrixRow))

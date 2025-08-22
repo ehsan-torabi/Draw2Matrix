@@ -155,9 +155,13 @@ func AddToFileForMatlab(inputData [][]int8, outputData string) {
 // SaveFileForMatlab saves the matrix data and target data to separate files
 // in MATLAB compatible format
 func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
+	extension := ".txt"
+	if Options.DotMFileWithVariable {
+		extension = ".m"
+	}
 	// Prepare file paths
-	dataPath := filepath.Join(dirPath, dataFileName+".txt")
-	targetPath := filepath.Join(dirPath, targetFileName+".txt")
+	dataPath := filepath.Join(dirPath, dataFileName+extension)
+	targetPath := filepath.Join(dirPath, targetFileName+extension)
 
 	// Create data file
 	dataFile, err := os.OpenFile(dataPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
@@ -175,18 +179,29 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 
 	// Write processed matrix data
 	finalData := processForMatlabString(transposeMatrix(TempData.TempMatrix))
+	if Options.DotMFileWithVariable {
+		finalData = dataFileName + " = " + finalData + ";"
+	}
 	if _, err = dataFile.WriteString(finalData); err != nil {
 		return err
 	}
 
 	if Options.OneHotEncodingSave {
-		_, err = targetFile.WriteString(oneHotSaveUtil())
+		finalTarget := oneHotSaveUtil()
+		if Options.DotMFileWithVariable {
+			finalTarget = targetFileName + " = " + finalTarget + ";"
+		}
+		_, err = targetFile.WriteString(finalTarget)
 		if err != nil {
 			log.Println(err)
 			return err
 		}
 	} else {
-		_, err = targetFile.WriteString(fmt.Sprintf("%v", TempData.TempTarget))
+		finalTarget := fmt.Sprintf("%v", TempData.TempTarget)
+		if Options.DotMFileWithVariable {
+			finalTarget = targetFileName + " = " + finalTarget + ";"
+		}
+		_, err = targetFile.WriteString(finalTarget)
 		if err != nil {
 			log.Println(err)
 			return err
