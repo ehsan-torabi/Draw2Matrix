@@ -180,7 +180,7 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 	// Write processed matrix data
 	finalData := processForMatlabString(transposeMatrix(TempData.TempMatrix))
 	if Options.DotMFileWithVariable {
-		finalData = dataFileName + " = " + finalData + ";"
+		finalData = dataFileName + "_variable = " + finalData + ";"
 	}
 	if _, err = dataFile.WriteString(finalData); err != nil {
 		return err
@@ -189,7 +189,7 @@ func SaveFileForMatlab(dirPath, dataFileName, targetFileName string) error {
 	if Options.OneHotEncodingSave {
 		finalTarget := oneHotSaveUtil()
 		if Options.DotMFileWithVariable {
-			finalTarget = targetFileName + " = " + finalTarget + ";"
+			finalTarget = targetFileName + "_variable = " + finalTarget + ";"
 		}
 		_, err = targetFile.WriteString(finalTarget)
 		if err != nil {
